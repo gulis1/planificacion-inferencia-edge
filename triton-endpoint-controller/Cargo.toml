@@ -1,0 +1,7 @@
+[workspace]
+resolver = "2"
+
+members = [ "tservice_controller",
+    "tservice_lib",
+]
+

@@ -1,0 +1,4 @@
+{
+    "service_uuid": "e3447db3-29c2-49e3-9be1-dfc167df8843",
+    "graph": "digraph G {\n  \"a4d4193a-7c88-4fae-8f0a-2f46a559aec4\" -> \"3094abce-c04e-4500-a127-c26dad5db1bf\"\n  \"a4d4193a-7c88-4fae-8f0a-2f46a559aec4\" -> \"84f5230a-f80b-4f7d-a811-b00800f0d33c\"\n  \"a4d4193a-7c88-4fae-8f0a-2f46a559aec4\" -> \"c79454da-3567-4b78-8d03-e79d02c142ba\"\n  \"3094abce-c04e-4500-a127-c26dad5db1bf\" -> \"84f5230a-f80b-4f7d-a811-b00800f0d33c\"\n  \"84f5230a-f80b-4f7d-a811-b00800f0d33c\" -> \"3094abce-c04e-4500-a127-c26dad5db1bf\"\n}\n"
+}

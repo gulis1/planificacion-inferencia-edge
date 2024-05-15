@@ -1,0 +1,13 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: triton-binding
+  namespace: kube-triton 
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: kube-triton
+roleRef:
+  kind: Role #this must be Role or ClusterRole
+  name: triton-role 
+  apiGroup: rbac.authorization.k8s.io

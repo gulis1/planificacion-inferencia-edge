@@ -1,0 +1,8 @@
+apiVersion: "prueba.ucm.es/v1"
+kind: TritonService
+metadata:
+  name: tritonservice-prueba
+  finalizers:
+    - "tritonservices.prueba.ucm.es/deletion"
+spec:
+  selector: hola

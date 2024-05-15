@@ -1,0 +1,4 @@
+{
+    "service": "dee8f56c-f89f-457e-9dcd-ad9c9b6c2ac3",
+    "graph": "digraph G {\n  6b03d80d-197c-4b08-8cf2-e88b69de2c54 -> f6e8cc61-3f93-4d0b-85be-6c9ab561b55e\n  6b03d80d-197c-4b08-8cf2-e88b69de2c54 -> 5e070ed3-7ee3-4373-9383-1f13baaaf042\n  5e070ed3-7ee3-4373-9383-1f13baaaf042 -> f6e8cc61-3f93-4d0b-85be-6c9ab561b55e\n  9a280a0b-6c1a-43f6-ad30-268815801252 -> f6e8cc61-3f93-4d0b-85be-6c9ab561b55e\n}\n"
+}

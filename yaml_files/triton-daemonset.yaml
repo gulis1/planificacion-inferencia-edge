@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: triton
+spec:
+  selector:
+    matchLabels:
+      tritonservices.prueba.ucm.es: "hola"
+  template:
+    metadata:
+      labels:
+        tritonservices.prueba.ucm.es: "hola"
+    spec:
+      restartPolicy: Always
+      containers:
+        - image: gulis1/custom_triton:latest
+          name: triton-server
+          # Esto estoy bastante seguro de que no hace falta.
+          #ports:
+          #  - containerPort: 8000
+          #    hostPort: 8080
+          #    protocol: TCP
+
+        - image: gulis1/custom_prometheus:latest
+          name: triton-prometheus
+          # Para programar la parte de mrometheus, se puede quitar luego.
+          ports:
+            - containerPort: 9090
+              hostPort: 9090
+              protocol: TCP
+        - image: gulis1/temporal:0.3.4-amd64
+          name: triton-proxy
+          ports:
+            - containerPort: 9999
+              hostPort: 9999
+              protocol: TCP
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_UUID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
+            - name: RUST_LOG
+              value: info
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: all
+            - name: NVIDIA_DRIVER_CAPABILITIES
+              value: all
+            - name: METRICS_QUERY_INTERVAL_SECS
+              value: "10"
+

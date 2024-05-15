@@ -1,0 +1,7 @@
+digraph G {
+  artecslab003 -> alpinevm1
+  artecslab003 -> alpinevm2
+  artecslab003 -> marbore
+  alpinevm1 -> alpinevm2
+  alpinevm2 -> alpinevm1
+}
