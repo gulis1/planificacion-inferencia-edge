@@ -13,7 +13,7 @@ spec:
     spec:
       restartPolicy: Always
       containers:
-        - image: gulis1/custom_triton:latest
+        - image: gulis1/custom_triton:0.1.0
           name: triton-server
           # Esto estoy bastante seguro de que no hace falta.
           #ports:
@@ -21,14 +21,14 @@ spec:
           #    hostPort: 8080
           #    protocol: TCP
 
-        - image: gulis1/custom_prometheus:latest
+        - image: gulis1/custom_prometheus:0.1.0
           name: triton-prometheus
           # Para programar la parte de mrometheus, se puede quitar luego.
           ports:
             - containerPort: 9090
               hostPort: 9090
               protocol: TCP
-        - image: gulis1/temporal:0.3.4-amd64
+        - image: gulis1/temporal:0.3.4
           name: triton-proxy
           ports:
             - containerPort: 9999
