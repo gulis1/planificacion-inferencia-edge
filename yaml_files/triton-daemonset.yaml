@@ -13,7 +13,7 @@ spec:
     spec:
       restartPolicy: Always
       containers:
-        - image: gulis1/custom_triton:0.1.0
+        - image: gulis1/custom_triton:0.1.1
           name: triton-server
           # Esto estoy bastante seguro de que no hace falta.
           #ports:
