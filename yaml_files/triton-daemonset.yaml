@@ -13,7 +13,7 @@ spec:
     spec:
       restartPolicy: Always
       containers:
-        - image: gulis1/custom_triton:0.1.1
+        - image: gulis1/custom_triton:0.1.2
           name: triton-server
           # Esto estoy bastante seguro de que no hace falta.
           #ports:
@@ -28,7 +28,7 @@ spec:
             - containerPort: 9090
               hostPort: 9090
               protocol: TCP
-        - image: gulis1/temporal:0.3.4
+        - image: gulis1/temporal:0.3.7-amd64
           name: triton-proxy
           ports:
             - containerPort: 9999

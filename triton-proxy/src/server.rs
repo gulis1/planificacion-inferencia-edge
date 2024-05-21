@@ -11,11 +11,7 @@ use std::{
     time::{Duration, Instant}
 };
 use tokio::{
-    process::Command,
-    sync::{oneshot, RwLock, Semaphore},
-    time::timeout,
-    io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter},
-    net::{TcpListener, TcpSocket, TcpStream}
+    io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter}, net::{TcpListener, TcpSocket, TcpStream}, process::Command, sync::{oneshot, RwLock, Semaphore}, time::{sleep, timeout}
 };
 
 use crate::{
@@ -27,7 +23,7 @@ use crate::{
 
 /// Tiempo que tiene que pasar hasta que se vuelvan
 /// a consultar las metricas de un vecino.
-const QUERY_MAX_ELLAPSED: Duration = Duration::from_secs(60);
+const QUERY_MAX_ELLAPSED: Duration = Duration::from_secs(10);
 
 /// Numero máximo de consultas de métricas de vecinos
 /// simultáneas.
@@ -112,7 +108,6 @@ impl<T: Policy + 'static> ProxyServer<T> {
                         }
                         else {
                             server.query_annot(*uuid, HW_ANNOT, &ep.name);
-                            server.query_annot(*uuid, METRICS_ANNOT, &ep.name);
                         }
                     }
                     *write_handle = endps;
@@ -126,6 +121,7 @@ impl<T: Policy + 'static> ProxyServer<T> {
         
         let listener = TcpListener::bind(listen_address).await?;
         let server = Arc::clone(self);
+        // Tarea para el servidor proxy.
         tokio::spawn(async move {
             loop {
                 let client = listener.accept().await;
@@ -143,6 +139,24 @@ impl<T: Policy + 'static> ProxyServer<T> {
                 }
             }
         });
+        
+        let server = Arc::clone(&self);
+        // Tarea para ir pidiendo metricas actualizadasde los vecinos.
+        tokio::spawn(async move {
+             
+            loop {
+                let endpoints = server.endpoints.read().await;
+                for (uuid, ep) in endpoints.iter() {
+                    // Si no hay que seguir esperando...
+                    if !ep.metrics_queried_at.is_some_and(|t| t.elapsed() < QUERY_MAX_ELLAPSED) {
+                        server.query_annot(*uuid, METRICS_ANNOT, &ep.name);
+                    }
+                }
+
+                drop(endpoints);
+                sleep(QUERY_MAX_ELLAPSED).await;
+            }
+        });
 
         Ok(())
     }
@@ -158,9 +172,9 @@ impl<T: Policy + 'static> ProxyServer<T> {
 
         let target = read_handle.get(&target_uuid).context("Endpoint dropped")?;
         
-        if target.metrics_queried_at.is_some_and(|queried_at| queried_at.elapsed() > QUERY_MAX_ELLAPSED) {
-            self.query_annot(target_uuid, METRICS_ANNOT, &target.name);
-        }
+        //if target.metrics_queried_at.is_some_and(|queried_at| queried_at.elapsed() > QUERY_MAX_ELLAPSED) {
+        //    self.query_annot(target_uuid, METRICS_ANNOT, &target.name);
+        //}
 
         let start = Instant::now();
         let result = if target_uuid != self.self_uuid {
@@ -176,8 +190,8 @@ impl<T: Policy + 'static> ProxyServer<T> {
         }
         else {
             drop(read_handle);
-            log::info!("TRITON_PROXY_DEBUG {} {} localhost", request.id, request.jumps);
             let model = self.policy.choose_model(&request, &self.models); 
+            log::info!("TRITON_PROXY_DEBUG {} {} model:{}", request.id, request.jumps, model.name);
             let response = process_locally(&request, model).await?;
             client_conn.write_all(&response).await?;
             Some(Ok(()))
@@ -225,7 +239,7 @@ impl<T: Policy + 'static> ProxyServer<T> {
                     endp.metrics_queried_at = Some(Instant::now());
                     endp.metrics = response;
                     if endp.metrics.is_none() {
-                        log::warn!("Failed to query metrics for pod {pod_name}")
+                        log::warn!("Failed to query {annot_name} for pod {pod_name}")
                     }
                 }
                 else if annot_name == HW_ANNOT {

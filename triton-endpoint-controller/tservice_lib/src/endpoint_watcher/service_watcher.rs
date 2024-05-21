@@ -11,6 +11,7 @@ use kube::api::{ObjectMeta, PartialObjectMetaExt, Patch, PatchParams};
 use kube::runtime::{watcher, WatchStreamExt};
 use kube::{Api, Client, ResourceExt};
 use log::{error, info};
+use petgraph::visit::NodeCount;
 use petgraph::Direction;
 use petgraph::dot::{Config, Dot};
 use serde::Serialize;
@@ -123,9 +124,11 @@ impl<T: Policy> ServiceWatcher<T> {
         
         if self.pods.len() != graph.node_count() {
             return Err(anyhow!("
-                The number of pods in the graph and the number
-                of registered pods in the service is not the same.")
-            );
+                The number of pods in the graph ({}) and the number
+                of registered pods in the service ({}) is not the same.",
+                graph.node_count(),
+                self.pods.len()
+            ));
         }
         
         let invalid_nodes: Vec<Uuid> = graph.nodes()

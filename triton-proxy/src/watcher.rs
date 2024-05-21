@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
+use anyhow::{Result, Context};
 use futures::TryStreamExt;
 use k8s_openapi::api::core::v1::Pod;
 use kube::api::{ObjectMeta, PartialObjectMetaExt, Patch, PatchParams};
@@ -126,15 +127,27 @@ impl AnnotationsWatcher {
         let api = Arc::clone(&self.api);
         tokio::spawn(async move {
             
-            let params = api.get(&pod_name).await
-                .ok()
+            log::info!("Querying annot {annot_name} for {pod_name}");
+            let result: Result<JsonValue> = api.get(&pod_name).await.context("Failed to query pod")
                 .and_then(|pod| {
-                    pod.annotations()
+                    let x = pod.annotations()
                         .get(&annot_name)
-                        .cloned()
+                        .cloned();
+
+                    x.with_context(|| format!("Pod {pod_name} missing {annot_name} annot"))
                 })
-                .and_then(|text| serde_json::from_str(text.as_ref()).ok());
-            respond_to.send(params)
+                .and_then(|text| serde_json::from_str(text.as_ref()).map_err(anyhow::Error::from));
+            
+            match result {
+                Ok(payload) => {
+                    log::info!("Succesfully queryed annot {annot_name} for {pod_name}");
+                    respond_to.send(Some(payload))
+                },
+                Err(e) => {
+                    log::error!("Could not query annot {annot_name} for {pod_name}: {e}");
+                    respond_to.send(None)
+                }
+            }.expect("Failed to send oneshot message.");
         });
     }
 

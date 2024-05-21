@@ -31,7 +31,7 @@ impl Policy for MinQueue {
                 log::info!("Política: petición prioridad alta.");
                 // Escoger (3) con menores tiempos de respuesta anteriores.
                 let mas_rapidos = escoger_n(Order::Ascending(3), nodes, promedio_latencia);
-                log::info!("Nodos más rápidos escogidos: {:?}", mas_rapidos);
+                log::info!("Nodos más rápidos escogidos: {:#?}", mas_rapidos);
                 // De los (3), escoger el que tenga menor carga de trabajo.
                 mas_rapidos.iter()
                     .min_by_key(|(_uuid, ep)| carga_trabajo(ep))
@@ -54,7 +54,7 @@ impl Policy for MinQueue {
                 log::info!("Política: petición prioridad baja accuracy alta.");
                 // 1. Escoger (3) nodos más potentes
                 let mas_potentes = escoger_n(Order::Descending(3), nodes, calcular_hw);
-                log::info!("Nodos más potentes escogidos: {:?}", mas_potentes);
+                log::info!("Nodos más potentes escogidos: {:#?}", mas_potentes);
                 // 2. De los (3), escoger el que tenga menor carga de trabajo.
                 mas_potentes.iter()
                     .min_by_key(|(_uuid, ep)| carga_trabajo(ep))
@@ -97,7 +97,7 @@ impl Policy for MinQueue {
             }
         };
 
-        println!("Chosen model {} for request {}", model.name, request.id);
+        log::info!("Chosen model {} for request {}", model.name, request.id);
         model
     }
 }

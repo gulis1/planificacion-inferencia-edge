@@ -25,7 +25,7 @@ fn check_for_graph_file(path: &str, sender: &Sender<Message>) {
         let sender = sender.clone();
         let path = path.to_owned();
         tokio::spawn(async move {
-            sleep(Duration::from_secs(5)).await;
+            sleep(Duration::from_secs(10)).await;
             sender.send(Message::LoadGraphFromFile { file: path })
                 .await
                 .expect("Failed to load graph file: could not send message.");

@@ -45,6 +45,7 @@ def buscar_ruta(req_id):
                 info = line.split()[-3:]
                 request_id = info[0]
                 jump = int(info[1])
+                print(info)
                 try:
                     target = pod_dict[info[2]] if info[2] != "localhost" else "localhost"
                     

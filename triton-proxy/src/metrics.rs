@@ -103,7 +103,9 @@ fn get_metric(result: PromqlResult) -> Option<f64> {
 
     let (_, sample) = result.into_inner().0
         .into_vector()
-        .map(|mut vec| vec.remove(0))
+        .map(|mut vec| 
+            vec.remove(0)
+        )
         .map(|metric| {
             metric.into_inner()
         }).ok()?;
