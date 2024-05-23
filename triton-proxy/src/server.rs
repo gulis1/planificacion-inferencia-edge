@@ -157,6 +157,14 @@ impl<T: Policy + 'static> ProxyServer<T> {
                 sleep(QUERY_MAX_ELLAPSED).await;
             }
         });
+        
+        // Arrancar el cliente triton a la esperea de peticiones.
+        Command::new("python3")
+            .arg("-u")
+            .arg("./cliente.py")
+            .arg("-u")
+            .arg("127.0.0.1:8000") //TODO: cuidado con esto!!
+            .spawn()?;
 
         Ok(())
     }
@@ -255,23 +263,36 @@ impl<T: Policy + 'static> ProxyServer<T> {
 
 async fn process_locally(request: &Request, model: &Model) -> Result<Vec<u8>> {
     
+    let i1 = Instant::now();
     log::info!("Locally processing request: {}", request.id);
-    let mut process = Command::new("python3")
-        .arg("-u")
-        .arg("./cliente.py")
-        .arg("-u")
-        .arg("127.0.0.1:8000") //TODO: cuidado con esto!!
-        .arg("-m")
-        .arg(&model.name)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .spawn()?;
+    let sock = TcpStream::connect("127.0.0.1:12345").await?;
+    let (reader, writer) = sock.into_split();
+    let mut reader = BufReader::new(reader); 
+    let mut writer = BufWriter::new(writer);
 
-    process.stdin.as_mut().context("Missing stdin.")?
-        .write_all(&request.content).await?;
+    writer.write_u32(model.name.len() as u32).await?;
+    writer.write_all(model.name.as_bytes()).await?;
+    writer.write_all(&request.content).await?;
+    writer.flush().await?;
+    drop(writer);
 
-    let output = process.wait_with_output().await?;
-    Ok(output.stdout)
+    //let mut stdout = process.stdout.take().context("Missing child process stdout.")?;
+    //let mut n_read = 0;
+    //let mut response = vec![0_u8; 1024];
+    //let i4 = Instant::now();
+    //loop {
+    //    let res = stdout.read(&mut response[n_read..]).await;
+    //    match res {
+    //        Ok(0) => { break; },
+    //        Ok(n) => n_read += n,
+    //        Err(e) => log::error!("TFFFFFFFFFFFFFFF: {e}")
+    //    };
+    //}
+
+    let mut output_buffer = Vec::with_capacity(1024);
+    reader.read_to_end(&mut output_buffer).await?;
+    log::info!("Tiempo de inferencia: {}ms", i1.elapsed().as_millis());
+    Ok(output_buffer)
 }
 
 async fn proxy(client: &mut TcpStream, addr: SocketAddr, request: &Request) -> Result<()> {

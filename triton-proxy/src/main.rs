@@ -33,7 +33,7 @@ pub enum Message<'a> {
     NeighborAnnotRequest { neighbor_name: Arc<str>, annot_name: String, respond_to: oneshot::Sender<Option<JsonValue>>}
 }
 
-#[tokio::main]
+#[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<()> {
 
     if cfg!(debug_assertions) {

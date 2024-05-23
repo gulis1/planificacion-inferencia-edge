@@ -23,7 +23,7 @@ impl Policy for MinQueue {
         
         let nodes = endps.iter()
             .filter(|(uuid, _)| !request.previous_nodes.contains(uuid));
-
+        
         let target = match (request.priority, request.accuracy) {
             
             // Prioridad alta

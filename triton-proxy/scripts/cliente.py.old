@@ -12,15 +12,27 @@ from threading import Thread
 import sys
 import io
 import pickle
-import socket
-import struct
+from os import _exit
 
 from random import randint
 
 def argument_parser() -> ArgumentParser:
 
     parser = ArgumentParser()
-
+    parser.add_argument(
+        "-m",
+        "--model-name", 
+        type=str, 
+        required=False, 
+        help="Name of model"
+    )
+    parser.add_argument(
+        "-i",
+        "--image", 
+        type=str, 
+        required=False, 
+        help="Path to the image"
+    )
     parser.add_argument(
         "-u",
         "--url",
@@ -30,6 +42,22 @@ def argument_parser() -> ArgumentParser:
         help="Inference server URL. Default is localhost:8000.",
     )
 
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=str,
+        required=False,
+        default="output.png",
+        help="File name for the output image.",
+    )
+
+    parser.add_argument(
+        "--list-models",
+        action="store_true",
+        required=False,
+        default=False,
+        help="List all the models available on the server"
+    )
     return parser
 
 class ModelConfig:
@@ -89,51 +117,44 @@ def inference_request(client, model_name: str, model_config: ModelConfig, infer_
     return response_data
 
 
-def procesar_request(conn, modelos, triton_url):
-
-    t0 = time_ns()
-    bytes_input = bytes()
-    while True:
-        received = conn.recv(1024)
-        print(f"leidos {len(received)} bytes")
-        if len(received) == 0:
-            break
-        bytes_input += received
-    
-    print("Bytes leidos: ", bytes_input[:16])
-    model_name_length: int = struct.unpack(">I", bytes_input[:4])[0]
-    model_name = bytes_input[4: 4 + model_name_length].decode("utf-8")
-    print("Model name:", model_name)
-    print("Model name length: ", model_name_length)
-    model_info: ModelConfig = modelos[model_name]
-    
-    image = Image.open(io.BytesIO(bytes_input[4 + model_name_length:]))
-    with tritonclient.InferenceServerClient(triton_url, concurrency=20) as client:
-        t1 = time_ns()
-        infer_input = preprocess_image(model_info, image)
-        t2 = time_ns()
-        resultado = inference_request(client, model_name, model_info, infer_input)
-        t3 = time_ns()
-        
-        #b = pickle.dumps(resultado)
-        #sys.stdout.buffer.write(b)
-        conn.send(f"Tiempo previo (ms): {(t1 - t0) / 1_000_000}\n".encode("utf-8"))
-        conn.send(f"Tiempo preprocesado (ms): {(t2 - t1) / 1_000_000}\n".encode("utf-8"))
-        conn.send(f"Tiempo inferencia (ms): {(t3 - t2) / 1_000_000}\n".encode("utf-8"))
-        conn.close()
-        sys.stdout.flush()
 
 if __name__ == "__main__":
-
+    t0 = time_ns()
     parser = argument_parser()
     ARGS = parser.parse_args()
-    
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.bind(('0.0.0.0', 12345))
-    sock.listen(16)
+    with tritonclient.InferenceServerClient(ARGS.url, concurrency=20) as client:
 
-    modelos = leer_csv_modelos("modelos.csv")
-    while True:
-        conn, _ = sock.accept()
-        t = Thread(target=lambda: procesar_request(conn,  modelos, ARGS.url))
-        t.start()
+        if ARGS.list_models:
+            for model in get_models(client):
+                print(model)
+
+        elif ARGS.model_name is not None:
+            
+            modelos = leer_csv_modelos("modelos.csv")
+            model_info: ModelConfig = modelos[ARGS.model_name]
+
+            image = None
+            if ARGS.image is not None:
+                image = Image.open(ARGS.image)
+            else:
+                bytes_input = sys.stdin.buffer.read()
+                image = Image.open(io.BytesIO(bytes_input))
+    
+            t1 = time_ns()
+            infer_input = preprocess_image(model_info, image)
+            t2 = time_ns()
+            resultado = inference_request(client, ARGS.model_name, model_info, infer_input)
+            t3 = time_ns()
+            
+            #b = pickle.dumps(resultado)
+            #sys.stdout.buffer.write(b)
+            print(f"Tiempo previo (ms): {(t1 - t0) / 1_000_000}")
+            print(f"Tiempo preprocesado (ms): {(t2 - t1) / 1_000_000}")
+            print(f"Tiempo inferencia (ms): {(t3 - t2) / 1_000_000}")
+            sys.stdout.flush()
+            _exit(0)
+
+        else:
+            parser.print_help()
+    
+    

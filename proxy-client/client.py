@@ -45,25 +45,27 @@ def buscar_ruta(req_id):
                 info = line.split()[-3:]
                 request_id = info[0]
                 jump = int(info[1])
-                print(info)
                 try:
-                    target = pod_dict[info[2]] if info[2] != "localhost" else "localhost"
-                    
                     if request_id != str(req_id):
                         continue
-
-                    if jump == 0 and len(ruta) == 0:
-                        if target == "localhost":
+                    
+                    if info[2].startswith("model"):
+                        if jump == 0 and len(ruta) == 0:
                             ruta.append(node)
+                            print(info[2])
                             return ruta
-                        else:
+                        elif len(ruta) == (jump + 1):
+                            print(info[2])
+                            return ruta
+                    else:
+                        target = pod_dict[info[2]] if info[2] != "localhost" else info[2]
+                        if jump == 0 and len(ruta) == 0:
                             ruta += [node, target]
-                    elif len(ruta) == (jump + 1):
-                        if target == "localhost":
-                            return ruta 
-                        else:
+                        elif len(ruta) == (jump + 1):
                             ruta.append(target)
+
                 except KeyError:
+                    print("error", info[2])
                     pass
 
             # Buscar timeouts
@@ -172,9 +174,9 @@ def main():
 
         t2 = time_ns()
         try:
-            x = pickle.loads(response)
-            #guardar_imagen_prediccion(x, "output.png")
-            print(x.shape)
+            #x = pickle.loads(response)
+            #print(x.shape)
+            print(response.decode("utf-8"))
         except Exception as e:
             print("Error cliente:", e)
         print(f"Took {(t2 - t1) / 1_000_000} ms")
