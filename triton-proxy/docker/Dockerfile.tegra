@@ -21,5 +21,6 @@ COPY ./docker/config /root/.kube/config
 COPY ./docker/libs/tegra/* /lib/
 COPY --from=build /triton-proxy/target/release/triton-proxy /controller
 COPY ./scripts/cliente.py /cliente.py
+COPY ./scripts/modelos.csv /modelos.csv
 
 ENTRYPOINT ["/controller"]
