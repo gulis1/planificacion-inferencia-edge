@@ -95,7 +95,6 @@ def procesar_request(conn, modelos, triton_url):
     bytes_input = bytes()
     while True:
         received = conn.recv(1024)
-        print(f"leidos {len(received)} bytes")
         if len(received) == 0:
             break
         bytes_input += received

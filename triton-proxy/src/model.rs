@@ -12,7 +12,7 @@ pub struct Model {
     pub input_type: String,
     pub input_name: String,
     pub output_name: String,
-    pub needs_gpu: bool,
+    pub compatible_gpus: String,
     pub perf: u32,
     pub accuracy: u32
 }

@@ -179,9 +179,9 @@ def main():
             print(response.decode("utf-8"))
         except Exception as e:
             print("Error cliente:", e)
-        print(f"Took {(t2 - t1) / 1_000_000} ms")
-        ruta = buscar_ruta(uuid)
-        print("Ruta:", " -> ".join(ruta))
+        print(f"Took: {(t2 - t1) / 1_000_000} ms")
+        #ruta = buscar_ruta(uuid)
+        #print("Ruta:", " -> ".join(ruta))
 
 if __name__ == "__main__":
     main()

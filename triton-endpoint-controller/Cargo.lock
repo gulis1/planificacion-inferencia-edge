@@ -3262,6 +3262,8 @@ dependencies = [
  "env_logger",
  "kube",
  "log",
+ "petgraph",
+ "rust_dot",
  "serde",
  "serde_json",
  "tokio",

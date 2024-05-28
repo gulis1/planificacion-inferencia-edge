@@ -20,3 +20,9 @@ impl Policy for NoOp {
         Vec::new()
     }
 }
+
+impl AsyncDefault for NoOp {
+    async fn default() -> Self {
+        Self {} 
+    }
+}

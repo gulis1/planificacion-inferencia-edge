@@ -1,4 +1,4 @@
-name,format,batch_size,channels,width,height,input_type,input_name,output_name,needs_gpu,perf,accuracy
-model16,FORMAT_NCHW,2,3,224,224,FP32,pixel_values,logits,true,8,7
-model8,FORMAT_NCHW,2,3,224,224,FP32,pixel_values,logits,true,10,5
-mobilenet,FORMAT_NHWC,32,3,224,224,FP32,input_1,conv2d_9,false,5,10
+name,format,batch_size,channels,width,height,input_type,input_name,output_name,compatible_gpus,perf,accuracy
+model16,FORMAT_NCHW,2,3,224,224,FP32,pixel_values,logits,NVIDIA A30,8,7
+model8,FORMAT_NCHW,2,3,224,224,FP32,pixel_values,logits,NVIDIA A30,10,5
+mobilenet,FORMAT_NHWC,32,3,224,224,FP32,input_1,conv2d_9,,5,1

@@ -39,7 +39,7 @@ pub fn run<T: Policy>(client: Client) -> mpsc::Sender<Message> {
             match msg {
                 Message::NewService { service_uid, namespace, selector } => {
                     if !service_watchers.contains_key(&service_uid) {
-                        let service = ServiceWatcher::new(service_uid, client.clone(), msg_sender.clone(), &namespace, selector);
+                        let service = ServiceWatcher::new(service_uid, client.clone(), msg_sender.clone(), &namespace, selector).await;
                         info!("Adding watcher for service {service_uid}");
                         service_watchers.insert(service_uid, service);
                     }   

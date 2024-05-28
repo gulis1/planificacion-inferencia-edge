@@ -62,17 +62,22 @@ impl PrometheusClient {
     async fn query_metrics(client: Arc<Client>) -> Result<HashMap<String, f64>> {
         
         // Query the names of all available metrics.
-        let mut metric_names: Vec<(Option<String>, String)> = client.label_values("__name__")
-            .get().await?
-            .into_iter()
-            .map(|metric| (None, metric))
-            .collect();
+        //let mut metric_names: Vec<(Option<String>, String)> = client.label_values("__name__")
+        //    .get().await?
+        //    .into_iter()
+        //    .map(|metric| (None, metric))
+        //    .collect();
         
+        let mut metric_names = Vec::new();
         metric_names.push((
             Some("queue_avg_5m".to_string()),
-            "avg(avg_over_time(nv_inference_queue_duration_us[5m]))".to_string()
+            "sum(increase(nv_inference_queue_duration_us[5m])) / sum(increase(nv_inference_exec_count[5m]))".to_string()
         ));
             
+        metric_names.push((
+            Some("total_inferences".to_string()),
+            "sum(nv_inference_exec_count)".to_string()
+        ));
         // Spawn a task to query each metric.
         let n_metrics = metric_names.len();
         let mut joinset = JoinSet::new();
@@ -90,7 +95,10 @@ impl PrometheusClient {
         let mut metrics = HashMap::with_capacity(n_metrics);
         while let Some(res) = joinset.join_next().await {
             match res? {
-                (metric, Some(value)) => { metrics.insert(metric, value); },
+                (metric, Some(value)) => {
+                    log::info!("Succesfully prom. queried metric {metric}: {value}");
+                    metrics.insert(metric, value); 
+                },
                 (metric, None) => log::error!("Failed to query metric: {metric}"),
             }
         }
@@ -109,6 +117,8 @@ fn get_metric(result: PromqlResult) -> Option<f64> {
         .map(|metric| {
             metric.into_inner()
         }).ok()?;
-
-    Some(sample.value())
+    
+    let value = sample.value();
+    if value.is_nan() { Some(0.0) }
+    else { Some(value) }
 }

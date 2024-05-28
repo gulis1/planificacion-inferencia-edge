@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use log::info;
 use ringbuffer::{AllocRingBuffer, RingBuffer};
 use uuid::Uuid;use serde_json::Value as JsonValue;
@@ -66,14 +67,32 @@ impl<T: Policy + 'static> ProxyServer<T> {
     ) -> Result<Arc<Self>> {
     
         let mut models = read_models(model_csv_path)?;
-        if !hw_info.has_gpu() {
-            models = models.into_iter()
-                .filter(|m| !m.needs_gpu)
-                .collect();
-        }
+        let available_gpus: Vec<&str> = hw_info.gpus.iter().map(|g| g.name.as_str()).collect();
+        log::info!("Available gpus: {:?}", available_gpus);
+        models = models.into_iter()
+            .filter(|m| {
+                if m.compatible_gpus.len() == 0 {
+                    // Modelo solo para CPU, compatible con todo
+                    log::info!("Found compatible model: {}", m.name);
+                    true
+                }
+                else {
+                    m.compatible_gpus.split(";")
+                        .any(|model_gpu| {
+                            let matches = available_gpus.contains(&model_gpu);
+                            if matches { log::info!("Found compatible model: {}", m.name); }
+                            else { log::info!("Found incompatible model: {}", m.name); }
+                            matches
+                        })
+                }
+            })
+            .collect();
+
         if models.len() == 0 {
             return Err(anyhow!("Found 0 compatible models."));
         }
+
+        log::info!("Compatible models: {:?}", models); 
 
          
         let server = Arc::new(Self {
@@ -201,7 +220,20 @@ impl<T: Policy + 'static> ProxyServer<T> {
             let model = self.policy.choose_model(&request, &self.models); 
             log::info!("TRITON_PROXY_DEBUG {} {} model:{}", request.id, request.jumps, model.name);
             let response = process_locally(&request, model).await?;
-            client_conn.write_all(&response).await?;
+
+            let mut writer = BufWriter::new(client_conn);
+            writer.write_all(&response).await?;
+            
+            writer.write_all("Route: ".as_bytes()).await?;
+            for node in request.previous_nodes {
+                writer.write_all(node.to_string().as_bytes()).await?;
+                writer.write_all("->".as_bytes()).await?;
+            }
+            writer.write_all(self.self_uuid.to_string().as_bytes()).await?;
+            writer.write_all("\n".as_bytes()).await?;
+            writer.write_all("Model: ".as_bytes()).await?;
+            writer.write_all(model.name.as_bytes()).await?;
+            writer.flush().await?;
             Some(Ok(()))
         };
 

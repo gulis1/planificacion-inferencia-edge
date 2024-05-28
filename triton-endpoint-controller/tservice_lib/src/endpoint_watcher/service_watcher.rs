@@ -11,7 +11,6 @@ use kube::api::{ObjectMeta, PartialObjectMetaExt, Patch, PatchParams};
 use kube::runtime::{watcher, WatchStreamExt};
 use kube::{Api, Client, ResourceExt};
 use log::{error, info};
-use petgraph::visit::NodeCount;
 use petgraph::Direction;
 use petgraph::dot::{Config, Dot};
 use serde::Serialize;
@@ -49,7 +48,7 @@ impl<T: Policy> Drop for ServiceWatcher<T> {
 type MsgSender = mpsc::Sender<Message>;
 impl<T: Policy> ServiceWatcher<T> {
 
-    pub fn new(
+    pub async fn new(
         service_uid: Uuid,
         client: Client, 
         msg_sender: MsgSender, 
@@ -62,7 +61,7 @@ impl<T: Policy> ServiceWatcher<T> {
             pods: BTreeMap::new(),
             api: Arc::new(Api::namespaced(client, namespace)),
             watcher_handle,
-            policy: T::default()
+            policy: T::default().await
         }
     }
 
@@ -178,7 +177,7 @@ impl<T: Policy> ServiceWatcher<T> {
             name: pod.name_any(),
             ip: pod.status.as_ref().unwrap().pod_ip.clone().unwrap()
         });
-        let neighbor_string = serde_json::to_string(&neighbors).unwrap(); 
+        let neighbor_string = serde_json::to_string_pretty(&neighbors).unwrap(); 
         let api = Arc::clone(&self.api);
         set_annotation(pod, api, ANNOT_NAME, neighbor_string);
     }

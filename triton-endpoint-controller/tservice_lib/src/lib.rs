@@ -11,7 +11,7 @@ pub mod policy;
 
 pub fn run<T: Policy>(client: Client, initial_grap_file: &str) {
 
-    let msg_sender = endpoint_watcher::run::<T>(client.clone()); 
+    let msg_sender = endpoint_watcher::run::<T>(client.clone());
     controller::run(client.clone(), msg_sender.clone());
     check_for_graph_file(initial_grap_file, &msg_sender);
 }
@@ -25,7 +25,7 @@ fn check_for_graph_file(path: &str, sender: &Sender<Message>) {
         let sender = sender.clone();
         let path = path.to_owned();
         tokio::spawn(async move {
-            sleep(Duration::from_secs(10)).await;
+            sleep(Duration::from_secs(2)).await;
             sender.send(Message::LoadGraphFromFile { file: path })
                 .await
                 .expect("Failed to load graph file: could not send message.");

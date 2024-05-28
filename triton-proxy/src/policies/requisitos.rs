@@ -16,60 +16,16 @@ enum Order {
 
 
 #[derive(Debug, Clone, Default)]
-pub struct MinQueue;
+pub struct Requisitos;
 
-impl Policy for MinQueue {
+impl Policy for Requisitos {
     async fn choose_target(&self, request: &Request, endps: &Endpoints) -> Uuid {
         
+        // Quitar nodos anteriores para que no haya ciclos.
         let nodes = endps.iter()
             .filter(|(uuid, _)| !request.previous_nodes.contains(uuid));
         
-        let target = match (request.priority, request.accuracy) {
-            
-            // Prioridad alta
-            (1.., _) => {
-                //log::info!("Política: petición prioridad alta.");
-                //// Escoger (3) con menores tiempos de respuesta anteriores.
-                //let mas_rapidos = escoger_n(Order::Ascending(3), nodes, promedio_latencia);
-                //log::info!("Nodos más rápidos escogidos: {:#?}", mas_rapidos);
-                //// De los (3), escoger el que tenga menor carga de trabajo.
-                //mas_rapidos.iter()
-                //    .min_by_key(|(_uuid, ep)| carga_trabajo(ep))
-                //    .unwrap_or(&mas_rapidos[0])
-                //    .0
-                let mas_potentes = escoger_n(Order::Descending(2), nodes, calcular_hw);
-                log::info!("Nodos más potentes escogidos: {:#?}", mas_potentes);
-                mas_potentes.iter()
-                    .min_by_key(|(_uuid, ep)| promedio_latencia(ep))
-                    .unwrap_or(&mas_potentes[0])
-                    .0
 
-            }
-
-            // Prioridad baja, accuracy baja
-            (0, 0) => {
-                log::info!("Política: petición prioridad baja accuracy baja.");
-                // Enviar al que menos carga de trabajo tenga.
-                *nodes
-                    .min_by_key(|(_uuid, ep)| carga_trabajo(ep))
-                    .unwrap()
-                    .0
-            },
-
-            // Prioridad baja, accuracy alta
-            (0, 1..) => {
-                log::info!("Política: petición prioridad baja accuracy alta.");
-                // 1. Escoger (3) nodos más potentes
-                let mas_potentes = escoger_n(Order::Descending(3), nodes, calcular_hw);
-                log::info!("Nodos más potentes escogidos: {:#?}", mas_potentes);
-                // 2. De los (3), escoger el que tenga menor carga de trabajo.
-                mas_potentes.iter()
-                    .min_by_key(|(_uuid, ep)| carga_trabajo(ep))
-                    .unwrap_or(&mas_potentes[0])
-                    .0
-            },
-        };
-        
         target
     }
 

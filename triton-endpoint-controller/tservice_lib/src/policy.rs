@@ -18,8 +18,13 @@ impl<'a> GraphWrapper<'a> {
             _graph: graph
         }
     }
+
     pub fn node_count(&self) -> usize {
         self._graph.node_count()
+    }
+
+    pub fn contains_node(&self, node: Uuid) -> bool {
+        self._graph.contains_node(node)
     }
 
     pub fn nodes(&self) -> Nodes<'_, Uuid> {
@@ -43,7 +48,11 @@ impl<'a> GraphWrapper<'a> {
     }
 }
 
-pub trait Policy: Default + std::fmt::Debug + Send {
+pub trait AsyncDefault: Send {
+    fn default() -> impl std::future::Future<Output = Self> + std::marker::Send;
+}
+
+pub trait Policy: AsyncDefault + std::fmt::Debug + Send {
     fn pod_added(&mut self, graph: &mut GraphWrapper, pods: &PodMap, pod: Uuid) -> Vec<Uuid>;
     fn pod_removed(&mut self, graph: &mut GraphWrapper, pods: &PodMap, pod: Uuid, affected: &[Uuid]) -> Vec<Uuid>;
     fn pod_updated(&mut self, graph: &mut GraphWrapper, pods: &PodMap, pod: Uuid) -> Vec<Uuid>;

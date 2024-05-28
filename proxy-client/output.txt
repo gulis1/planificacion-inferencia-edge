@@ -1,0 +1,12 @@
+Thread 0 started
+bucle
+Thread 0 finished
+Thread 1 started
+bucle
+Thread 1 finished
+Thread 2 started
+bucle
+Thread 2 finished
+artecslab003
+artecslab003
+artecslab003

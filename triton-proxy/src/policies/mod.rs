@@ -1,5 +1,6 @@
 pub mod min_latencia;
 pub mod min_queue;
+pub mod requisitos;
 
 use std::fmt::Debug;
 use serde::{Deserialize, Serialize};
@@ -7,6 +8,7 @@ use uuid::Uuid;
 use crate::{model::Model, server::Endpoints};
 
 pub use min_latencia::MinLatencia;
+pub use requisitos::Requisitos;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Request {

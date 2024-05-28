@@ -38,6 +38,12 @@ impl Policy for HwOnly {
     }
 }
 
+impl AsyncDefault for HwOnly {
+    async fn default() -> Self {
+        Self { already_added: HashSet::new() }
+    }
+}
+
 #[inline]
 fn get_hw_info(pods: &PodMap, pod: &Uuid) -> Option<JsonValue> {
     
