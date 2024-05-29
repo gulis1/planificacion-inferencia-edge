@@ -13,13 +13,6 @@ pub struct SystemInfo {
     pub gpus: Vec<GpuInfo>
 }
 
-impl SystemInfo {
-
-    pub fn has_gpu(&self) -> bool {
-        self.gpus.len() > 0
-    }
-}
-
 impl ToString for SystemInfo {
     fn to_string(&self) -> String {
         serde_json::to_string(self).unwrap()

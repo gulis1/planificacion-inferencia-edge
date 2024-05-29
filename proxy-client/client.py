@@ -159,8 +159,8 @@ def main():
 
         sock.send(uuid.bytes)
         sock.send(struct.pack(">I", 0))
-        sock.send(struct.pack(">B", args.priority))
-        sock.send(struct.pack(">B", args.accuracy))
+        sock.send(struct.pack(">I", args.priority))
+        sock.send(struct.pack(">I", args.accuracy))
         sock.send(struct.pack(">Q", len(img)))
         sock.send(img)
         

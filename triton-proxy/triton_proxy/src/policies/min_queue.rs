@@ -1,13 +1,13 @@
 use itertools::Itertools;
 use ringbuffer::RingBuffer;
-use uuid::Uuid;
-
-use crate::{
-    model::Model,
+use triton_proxy_lib::{
+    policy::{Policy, Request}, 
     server::{Endpoint, Endpoints}
 };
-
-use super::{Policy, Request};
+use uuid::Uuid;
+use crate::policies::process_locally;
+use super::{read_models, Model, SimpleContext};
+use anyhow::Result;
 
 enum Order {
     Ascending(usize),
@@ -16,15 +16,26 @@ enum Order {
 
 
 #[derive(Debug, Clone, Default)]
-pub struct MinQueue;
+pub struct MinQueue {
+    models: Vec<Model> 
+}
 
-impl Policy for MinQueue {
-    async fn choose_target(&self, request: &Request, endps: &Endpoints) -> Uuid {
+impl MinQueue {
+    pub fn new(path: &str) -> Result<Self> {
+        Ok(Self {
+            models: read_models(path)?
+        })
+    }
+}
+
+impl Policy<SimpleContext> for MinQueue {
+    
+    async fn choose_target(&self, request: &Request<SimpleContext>, endps: &Endpoints) -> Uuid {
         
         let nodes = endps.iter()
             .filter(|(uuid, _)| !request.previous_nodes.contains(uuid));
         
-        let target = match (request.priority, request.accuracy) {
+        let target = match (request.context.priority, request.context.accuracy) {
             
             // Prioridad alta
             (1.., _) => {
@@ -73,14 +84,24 @@ impl Policy for MinQueue {
         target
     }
 
-    fn choose_model<'a>(&self, request: &Request, models: &'a [Model]) -> &'a Model {
+    async fn process_locally(&self, request: &Request<SimpleContext>) -> Result<Vec<u8>> {
         
-        let model = match (request.priority, request.accuracy) {
+        let model = self.choose_model(request);
+        process_locally(request, model).await
+    }
+
+}
+
+impl<'a> MinQueue {
+
+    fn choose_model(&'a self, request: &Request<SimpleContext>) -> &'a Model {
+        
+        let model = match (request.context.priority, request.context.accuracy) {
 
             // Accuracy baja
             (_, 0) => {
                 // Modelo más rápido.
-                models.iter()
+                self.models.iter()
                     .max_by_key(|m| m.perf)
                     .unwrap()
             },
@@ -88,14 +109,14 @@ impl Policy for MinQueue {
             // Prioridad baja, accuracy alta.
             (0, _) => {
                 // Modelo con más accuracy
-                models.iter()
+                self.models.iter()
                     .max_by_key(|m| m.accuracy)
                     .unwrap()
             },
 
             (1.., 1..) => {
                 // De los (3) modelos con más accuracy, se escoge el más rápido.
-                models.iter()
+                self.models.iter()
                     .sorted_by_key(|m| m.accuracy)
                     .rev()
                     .take(3)
@@ -108,6 +129,7 @@ impl Policy for MinQueue {
         model
     }
 }
+
 
 fn escoger_n<'a, I, F>(order: Order, endps: I, mut key: F) -> Vec<(Uuid, &'a Endpoint)>
     where I: Iterator<Item = (&'a Uuid, &'a Endpoint)>,

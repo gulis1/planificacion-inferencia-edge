@@ -2154,21 +2154,40 @@ dependencies = [
 ]
 
 [[package]]
-name = "triton-proxy"
+name = "triton_proxy"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "ciborium",
  "csv",
- "dashmap",
  "env_logger",
  "futures",
  "itertools",
  "k8s-openapi",
  "kube",
  "log",
- "prometheus-http-query",
  "rand",
+ "ringbuffer",
+ "serde",
+ "serde_json",
+ "tokio",
+ "triton_proxy_lib",
+ "uuid",
+]
+
+[[package]]
+name = "triton_proxy_lib"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "ciborium",
+ "csv",
+ "dashmap",
+ "futures",
+ "itertools",
+ "k8s-openapi",
+ "kube",
+ "log",
+ "prometheus-http-query",
  "ringbuffer",
  "rustacuda",
  "rustacuda_core 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",

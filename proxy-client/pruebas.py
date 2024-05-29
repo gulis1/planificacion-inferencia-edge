@@ -98,7 +98,6 @@ def launch_client(args, thread_id: int, output_vec: list[str]):
 
     output += "\nPrioridad: " + str(prioridad)
     output += "\nAccuracy: " + str(accuracy)
-
     print(f"Thread {thread_id} finished") 
     output_vec[thread_id] = output
 

@@ -17,10 +17,10 @@ RUN apt update && \
     apt install -y python3 python3-pip && \
     pip install tritonclient[all] pillow 
 
-COPY ./docker/config /root/.kube/config
-COPY ./docker/libs/x86_64/libcuda.so.1 /lib/libcuda.so.1
-COPY --from=build /triton-proxy/target/release/triton-proxy /controller
-COPY ./scripts/cliente.py /cliente.py
-COPY ./scripts/modelos.csv /modelos.csv
+COPY ./triton_proxy/docker/config /root/.kube/config
+COPY ./triton_proxy/docker/libs/x86_64/libcuda.so.1 /lib/libcuda.so.1
+COPY --from=build /triton-proxy/target/release/triton_proxy /controller
+COPY ./triton_proxy/scripts/cliente.py /cliente.py
+COPY ./triton_proxy/scripts/modelos.csv /modelos.csv
 
 ENTRYPOINT ["/controller"]

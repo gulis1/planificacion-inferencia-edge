@@ -1,25 +1,17 @@
-use itertools::Itertools;
 use log::info;
 use ringbuffer::{AllocRingBuffer, RingBuffer};
 use uuid::Uuid;use serde_json::Value as JsonValue;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use std::{
-    collections::HashMap,
-    net::SocketAddr,
-    process::Stdio,
-    str::FromStr,
-    sync::Arc,
-    time::{Duration, Instant}
+    collections::HashMap, marker::PhantomData, net::SocketAddr, str::FromStr, sync::Arc, time::{Duration, Instant}
 };
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter}, net::{TcpListener, TcpSocket, TcpStream}, process::Command, sync::{oneshot, RwLock, Semaphore}, time::{sleep, timeout}
 };
 
 use crate::{
-    {Message, MsgSender, HW_ANNOT, METRICS_ANNOT},
-    hardware::SystemInfo,
-    model::{read_models, Model},
-    policies::{Policy, Request}
+    policy::{Policy, Receiver, Request, RequestContext, Sender},
+    Message, MsgSender, HW_ANNOT, METRICS_ANNOT
 };
 
 /// Tiempo que tiene que pasar hasta que se vuelvan
@@ -47,61 +39,37 @@ pub struct Endpoint {
     pub last_results: AllocRingBuffer <Result<Duration, Instant>>
 }
 
-pub struct ProxyServer<T: Policy> {
+pub(crate) struct ProxyServer<T, R> 
+where T: Policy<R>,
+      R: RequestContext
+{
     self_uuid: Uuid,
     endpoints: RwLock<Endpoints>,
     query_sem: Semaphore,
     sender: MsgSender<'static>,
     policy: T,
-    models: Vec<Model>
+    phantom: PhantomData<R>
 }
 
-impl<T: Policy + 'static> ProxyServer<T> {
-    
+impl<T, R> ProxyServer<T, R> 
+where T: Policy<R> + 'static, 
+      R: RequestContext + 'static
+{
     pub async fn new(
         self_uuid: Uuid,
         listen_address: &str,
         sender: MsgSender<'static>,
-        model_csv_path: &str,
-        hw_info: SystemInfo
+        policy: T
     ) -> Result<Arc<Self>> {
     
-        let mut models = read_models(model_csv_path)?;
-        let available_gpus: Vec<&str> = hw_info.gpus.iter().map(|g| g.name.as_str()).collect();
-        log::info!("Available gpus: {:?}", available_gpus);
-        models = models.into_iter()
-            .filter(|m| {
-                if m.compatible_gpus.len() == 0 {
-                    // Modelo solo para CPU, compatible con todo
-                    log::info!("Found compatible model: {}", m.name);
-                    true
-                }
-                else {
-                    m.compatible_gpus.split(";")
-                        .any(|model_gpu| {
-                            let matches = available_gpus.contains(&model_gpu);
-                            if matches { log::info!("Found compatible model: {}", m.name); }
-                            else { log::info!("Found incompatible model: {}", m.name); }
-                            matches
-                        })
-                }
-            })
-            .collect();
 
-        if models.len() == 0 {
-            return Err(anyhow!("Found 0 compatible models."));
-        }
-
-        log::info!("Compatible models: {:?}", models); 
-
-         
         let server = Arc::new(Self {
             self_uuid,
             endpoints: RwLock::new(Endpoints::default()),
             query_sem: Semaphore::new(MAX_CONCURRENT_METRICS_QUERY),
             sender,
-            policy: T::default(),
-            models
+            policy,
+            phantom: PhantomData
         });
         
         server.run(listen_address).await?;
@@ -217,26 +185,23 @@ impl<T: Policy + 'static> ProxyServer<T> {
         }
         else {
             drop(read_handle);
-            let model = self.policy.choose_model(&request, &self.models); 
-            log::info!("TRITON_PROXY_DEBUG {} {} model:{}", request.id, request.jumps, model.name);
-            let response = process_locally(&request, model).await?;
+            //let model = self.policy.choose_model(&request, &self.models); 
+            //log::info!("TRITON_PROXY_DEBUG {} {} model:{}", request.id, request.jumps, model.name);
+            //let response = process_locally(&request, model).await?;
 
+            let response = self.policy.process_locally(&request).await?;
             let mut writer = BufWriter::new(client_conn);
             writer.write_all(&response).await?;
-            
-            writer.write_all("Route: ".as_bytes()).await?;
+            writer.write_all("\nRoute: ".as_bytes()).await?;
             for node in request.previous_nodes {
                 writer.write_all(node.to_string().as_bytes()).await?;
                 writer.write_all("->".as_bytes()).await?;
             }
             writer.write_all(self.self_uuid.to_string().as_bytes()).await?;
             writer.write_all("\n".as_bytes()).await?;
-            writer.write_all("Model: ".as_bytes()).await?;
-            writer.write_all(model.name.as_bytes()).await?;
             writer.flush().await?;
             Some(Ok(()))
         };
-
         // On sucess, store how long it took for the target to answer the last request.
         // On timeout or error, store the instant the error.
         let event = match &result {
@@ -293,41 +258,7 @@ impl<T: Policy + 'static> ProxyServer<T> {
     }
 }
 
-async fn process_locally(request: &Request, model: &Model) -> Result<Vec<u8>> {
-    
-    let i1 = Instant::now();
-    log::info!("Locally processing request: {}", request.id);
-    let sock = TcpStream::connect("127.0.0.1:12345").await?;
-    let (reader, writer) = sock.into_split();
-    let mut reader = BufReader::new(reader); 
-    let mut writer = BufWriter::new(writer);
-
-    writer.write_u32(model.name.len() as u32).await?;
-    writer.write_all(model.name.as_bytes()).await?;
-    writer.write_all(&request.content).await?;
-    writer.flush().await?;
-    drop(writer);
-
-    //let mut stdout = process.stdout.take().context("Missing child process stdout.")?;
-    //let mut n_read = 0;
-    //let mut response = vec![0_u8; 1024];
-    //let i4 = Instant::now();
-    //loop {
-    //    let res = stdout.read(&mut response[n_read..]).await;
-    //    match res {
-    //        Ok(0) => { break; },
-    //        Ok(n) => n_read += n,
-    //        Err(e) => log::error!("TFFFFFFFFFFFFFFF: {e}")
-    //    };
-    //}
-
-    let mut output_buffer = Vec::with_capacity(1024);
-    reader.read_to_end(&mut output_buffer).await?;
-    log::info!("Tiempo de inferencia: {}ms", i1.elapsed().as_millis());
-    Ok(output_buffer)
-}
-
-async fn proxy(client: &mut TcpStream, addr: SocketAddr, request: &Request) -> Result<()> {
+async fn proxy(client: &mut TcpStream, addr: SocketAddr, request: &Request<impl RequestContext>) -> Result<()> {
     
     let mut target = TcpSocket::new_v4()?
         .connect(addr)
@@ -341,25 +272,28 @@ async fn proxy(client: &mut TcpStream, addr: SocketAddr, request: &Request) -> R
     Ok(())
 }
 
-async fn read_request(stream: &mut TcpStream) -> Result<Request> {
+async fn read_request<R: RequestContext> (stream: &mut TcpStream) -> Result<Request<R>> {
 
-    let mut reader = BufReader::new(stream);
+    let mut reader = Receiver {r: BufReader::new(stream) };
     let mut uuid_buff = [0_u8; 16];
 
-    reader.read_exact(&mut uuid_buff).await?;
+    reader.r.read_exact(&mut uuid_buff).await?;
     let uuid = Uuid::from_slice(&uuid_buff)?;
-    let jumps = reader.read_u32().await?;
+    let jumps = reader.r.read_u32().await?;
     log::info!("Recibido: JUMPS {}", jumps);
-    let priority = reader.read_u8().await?;
-    let accuracy = reader.read_u8().await?;
-    let request_size = reader.read_u64().await?;
 
+    // Lectura del context
+    let context = R::receive(&mut reader).await?;
+    // let priority = reader.read_u8().await?;
+    // let accuracy = reader.read_u8().await?;
+
+    let request_size = reader.r.read_u64().await?;
     let mut content = vec![0; request_size as usize];
-    reader.read_exact(content.as_mut_slice()).await?;
+    reader.r.read_exact(content.as_mut_slice()).await?;
     
     let mut previous_nodes = Vec::with_capacity(jumps as usize);
     for _ in 0..jumps {
-        reader.read_exact(&mut uuid_buff).await?;
+        reader.r.read_exact(&mut uuid_buff).await?;
         let uuid = Uuid::from_slice(&uuid_buff)?;
         log::info!("Recibido: UUID {}", uuid);
         previous_nodes.push(uuid)
@@ -368,29 +302,31 @@ async fn read_request(stream: &mut TcpStream) -> Result<Request> {
     Ok(Request {
         id: uuid,
         jumps,
-        priority,
-        accuracy,
+        context,
         content,
         previous_nodes
     })
 }
 
-async fn send_request(stream: &mut TcpStream, request: &Request) -> Result<()> {
+async fn send_request<R: RequestContext>(stream: &mut TcpStream, request: &Request<R>) -> Result<()> {
 
-    let mut writer = BufWriter::new(stream);
-    writer.write_all(request.id.as_bytes()).await?;
-    writer.write_u32(request.jumps).await?;
+    let mut writer = Sender{ s: BufWriter::new(stream) };
+    writer.s.write_all(request.id.as_bytes()).await?;
+    writer.s.write_u32(request.jumps).await?;
     log::info!("Enviado: JUMPS {}", request.jumps);
-    writer.write_u8(request.priority).await?;
-    writer.write_u8(request.accuracy).await?;
-    writer.write_u64(request.content.len() as u64).await?;
-    writer.write_all(&request.content).await?;
+
+    // Enviar el context
+    R::send(&mut writer, &request.context).await?;
+    //writer.write_u8(request.priority).await?;
+    //writer.write_u8(request.accuracy).await?;
+    writer.s.write_u64(request.content.len() as u64).await?;
+    writer.s.write_all(&request.content).await?;
     for uuid in request.previous_nodes.iter() {
-        writer.write_all(uuid.as_bytes()).await?;
+        writer.s.write_all(uuid.as_bytes()).await?;
         log::info!("Enviado: UUID {}", uuid);
     }
 
-    writer.flush().await?;
+    writer.s.flush().await?;
     Ok(())
 }
 

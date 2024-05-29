@@ -1,7 +1,11 @@
 use ringbuffer::RingBuffer;
+use triton_proxy_lib::{
+    policy::{Policy, Request},
+    server::{Endpoint, Endpoints}
+};
 use uuid::Uuid;
-use crate::{model::Model, server::{Endpoint, Endpoints}};
-use super::{Policy, Request};
+use super::{process_locally, Model, SimpleContext};
+use anyhow::Result;
 
 #[derive(Default)]
 /// Reglas:
@@ -12,11 +16,13 @@ use super::{Policy, Request};
 /// localhost se va a sobrecargar, y se empezará a enviar a otro vecino.
 /// Pero cuando localhost vuelve a la normalidad, ya no se le vuelven a enviar
 /// peticiones.
-pub struct MinLatencia;
+pub struct MinLatencia {
+    models: Vec<Model>
+}
 
-impl Policy for MinLatencia {
+impl Policy<SimpleContext> for MinLatencia {
 
-    async fn choose_target(&self, request: &Request, endpts: &Endpoints) -> Uuid {
+    async fn choose_target(&self, request: &Request<SimpleContext>, endpts: &Endpoints) -> Uuid {
 
         log::info!("MIERDA: {:?}", request.previous_nodes);
         let node_uuid = endpts.iter()
@@ -30,11 +36,19 @@ impl Policy for MinLatencia {
        node_uuid
     }
 
-    fn choose_model<'a>(&self, _request: &Request, models: &'a [Model]) -> &'a Model {
-        models.iter()
+    async fn process_locally(&self, request: &Request<SimpleContext>) -> Result<Vec<u8>> {
+        let model = self.choose_model(request);
+        process_locally(request, model).await
+    }
+}
+
+impl<'a> MinLatencia {
+     fn choose_model(&'a self, _request: &Request<SimpleContext>) -> &'a Model {
+        self.models.iter()
             .max_by_key(|model| model.perf)
             .unwrap()
-    }
+     }
+
 }
 
 /// Devuelve 0 si no se ha usado nunca.
