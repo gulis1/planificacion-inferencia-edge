@@ -23,10 +23,11 @@ impl Policy for Requisitos {
         
         // Quitar nodos anteriores para que no haya ciclos.
         let nodes = endps.iter()
-            .filter(|(uuid, _)| !request.previous_nodes.contains(uuid));
+            .filter(|(uuid, _)| !request.previous_nodes.contains(uuid))
+            .collect_vec();
         
 
-        target
+        nodes[0].0.clone()
     }
 
     fn choose_model<'a>(&self, request: &Request, models: &'a [Model]) -> &'a Model {
