@@ -1,10 +1,12 @@
 mod policies;
+mod utils;
 
-use std::env;
+use std::{env, sync::Arc};
 use kube::{Client, Config};
 use log::{error, info};
 use anyhow::{anyhow, Context, Result};
 use policies::{min_queue::MinQueue, SimpleContext};
+use triton_proxy_lib::metrics::Metric;
 use uuid::Uuid;
 
 
@@ -35,14 +37,42 @@ async fn main() -> Result<()> {
 
     let (pod_namespace, pod_name, pod_uuid) = get_env_vars()?;
     let policy = MinQueue::new(CSV_MODELOS)?;
+    let metrics = get_target_metrics();
     match client {
-        Ok(client) => triton_proxy_lib::main_task::<MinQueue, SimpleContext>(client, pod_namespace, pod_name, pod_uuid, policy).await,
+        Ok(client) => {
+            triton_proxy_lib::main_task::<MinQueue, SimpleContext>(
+                client,
+                pod_namespace,
+                pod_name,
+                pod_uuid,
+                policy,
+                metrics
+            ).await
+        },
         Err(e) => {
             error!("Failed to start Kubernetes api client: {e}");
             Err(anyhow!("Failed to start Kubernetes client"))
         }
     }
 
+}
+
+fn get_target_metrics() -> Vec<Metric> {
+    
+    let metrics = [
+        (   
+            "queue_avg_5m",
+            "sum(increase(nv_inference_queue_duration_us[5m])) / sum(increase(nv_inference_exec_count[5m]))"
+        ),
+        (
+            "total_inferences",
+            "sum(nv_inference_exec_count)"
+        )
+    ];
+
+    metrics.into_iter()
+        .map(|(name, query)| Metric::new(name, query))
+        .collect()
 }
 
 fn get_env_vars() -> Result<(String, String, Uuid)> {

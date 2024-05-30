@@ -1,37 +1,33 @@
+#![allow(dead_code)]
+
+use itertools::Itertools;
 use ringbuffer::RingBuffer;
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt};
-use triton_proxy_lib::{
-    policy::{Policy, Receiver, Request, RequestContext, Sender},
-    server::{Endpoint, Endpoints}
-};
+use triton_proxy_lib::server::Endpoint;
 use uuid::Uuid;
-use anyhow::Result;
 
-use super::SimpleContext;
-
-
-#[derive(Debug, Clone, Default)]
-pub struct Requisitos;
-
-impl Policy<SimpleContext> for Requisitos {
-    async fn choose_target(&self, request: &Request<SimpleContext>, endps: &Endpoints) -> Uuid {
-        // Quitar nodos anteriores para que no haya ciclos.
-        let nodes: Vec<(&Uuid, &Endpoint)> = endps.iter()
-            .filter(|(uuid, _)| !request.previous_nodes.contains(uuid))
-            .collect();
-
-        nodes[0].0.clone()
-    }
-    
-    async fn process_locally(&self, request: &Request<SimpleContext>) -> Result<Vec<u8>> {
-        todo!()
-    }
+pub enum Order {
+    Ascending(usize),
+    Descending(usize)
 }
 
+pub fn escoger_n<'a, I, F>(order: Order, endps: I, mut key: F) -> Vec<(Uuid, &'a Endpoint)>
+    where I: Iterator<Item = (&'a Uuid, &'a Endpoint)>,
+          F: FnMut(&Endpoint) -> u64
+{
+    let iter = endps
+        .sorted_by_key(|(_uuid, ep)| key(ep))
+        .map(|(uuid, ep)| (*uuid, ep));
+
+    let res = match order {
+        Order::Ascending(n) => iter.take(n).collect_vec(),
+        Order::Descending(n) => iter.rev().take(n).collect_vec()
+    };
+    res
+}
 
 /// Devuelve 0 si no se ha usado nunca.
-fn promedio_latencia(endp: &Endpoint) -> u64 {
-
+pub fn promedio_latencia(endp: &Endpoint) -> u64 {
+    
     let numero_endps = endp.last_results.len() as u64;
     let sum_latencia: u64 = endp.last_results.iter()
         .map(|res| {
@@ -49,7 +45,7 @@ fn promedio_latencia(endp: &Endpoint) -> u64 {
 }
 
 
-fn calcular_hw(ep: &Endpoint) -> u64 {
+pub fn calcular_hw(ep: &Endpoint) -> u64 {
     let hw_info = &ep.hw_info.as_ref();
 
     let cpu_cores = hw_info
@@ -70,15 +66,15 @@ fn calcular_hw(ep: &Endpoint) -> u64 {
             .sum()
         })
         .unwrap_or(0);
-     
- 
+        
+    
     let hw_score = cpu_cores + (gpu_cores / 10);
     log::info!("score hw de {}: {}", ep.name, hw_score);
     hw_score
 }
 
 #[inline]
-fn carga_trabajo(ep: &Endpoint) -> u64 {
+pub fn carga_trabajo(ep: &Endpoint) -> u64 {
     let carga = ep.metrics
         .as_ref()
         .and_then(|metr| metr.get("queue_avg_5m"))

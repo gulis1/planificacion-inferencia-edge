@@ -1,4 +1,3 @@
-FROM nvcr.io/nvidia/tritonserver:24.03-py3
+FROM nvcr.io/nvidia/tritonserver:24.03-py3-igpu
 COPY model_repository /models
 ENTRYPOINT ["tritonserver", "--model-repository=/models", "--exit-on-error=false"]
-#ENTRYPOINT ["bash"]

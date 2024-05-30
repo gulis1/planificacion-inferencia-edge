@@ -6,7 +6,7 @@ use crate::{Message, METRICS_ANNOT};
 
 const DEFAULT_QUERY_INERVAL_SECS: u64 = 60;
 
-pub struct PrometheusClient {
+pub(crate) struct PrometheusClient {
     task_handle: Option<JoinHandle<()>>
 }
 
@@ -18,30 +18,47 @@ impl Drop for PrometheusClient {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct Metric {
+    pub name: Arc<str>,
+    pub query: Arc<str>
+}
+
+impl Metric {
+
+    pub fn new(name: &str, query: &str) -> Self {
+        Self {
+            name: Arc::from(name),
+            query: Arc::from(query)
+        }
+    }
+}
+
 impl PrometheusClient {
 
-    pub fn new(target: &str, sender: mpsc::Sender<Message<'static>>) -> Result<Self> {
+    pub fn new(server: &str, target_metrics: Vec<Metric>, sender: mpsc::Sender<Message<'static>>) -> Result<Self> {
 
         let mut client = Self {
             task_handle: None
         };
 
-        client.run(target, sender)?;
+        client.run(server, target_metrics, sender)?;
         Ok(client)
     }
 
-    fn run(&mut self, target: &str, sender: mpsc::Sender<Message<'static>>) -> Result<()> {
+    fn run(&mut self, server: &str, target_metrics: Vec<Metric>, sender: mpsc::Sender<Message<'static>>) -> Result<()> {
     
-        let client = Arc::new(Client::from_str(target)?);
+        let client = Arc::new(Client::from_str(server)?);
         let interval_secs: u64 = env::var("METRICS_QUERY_INTERVAL_SECS")
             .map(|var| var.parse())
             .unwrap_or(Ok(DEFAULT_QUERY_INERVAL_SECS))?;
 
         let handle = tokio::spawn(async move {
+
             let mut interval = interval(Duration::from_secs(interval_secs));
             loop {
                 let client = client.clone();
-                match Self::query_metrics(client).await {
+                match Self::query_metrics(client, &target_metrics).await {
                     Ok(metrics) => {
                         let json = serde_json::to_string_pretty(&metrics).unwrap();
                         log::debug!("{METRICS_ANNOT}:\n{json}");
@@ -59,36 +76,22 @@ impl PrometheusClient {
         Ok(())
     }
 
-    async fn query_metrics(client: Arc<Client>) -> Result<HashMap<String, f64>> {
+    async fn query_metrics(client: Arc<Client>, target_metrics: &[Metric]) -> Result<HashMap<Arc<str>, f64>> {
         
-        // Query the names of all available metrics.
-        //let mut metric_names: Vec<(Option<String>, String)> = client.label_values("__name__")
-        //    .get().await?
-        //    .into_iter()
-        //    .map(|metric| (None, metric))
-        //    .collect();
         
-        let mut metric_names = Vec::new();
-        metric_names.push((
-            Some("queue_avg_5m".to_string()),
-            "sum(increase(nv_inference_queue_duration_us[5m])) / sum(increase(nv_inference_exec_count[5m]))".to_string()
-        ));
-            
-        metric_names.push((
-            Some("total_inferences".to_string()),
-            "sum(nv_inference_exec_count)".to_string()
-        ));
         // Spawn a task to query each metric.
-        let n_metrics = metric_names.len();
+        let n_metrics = target_metrics.len();
         let mut joinset = JoinSet::new();
-        for metric in metric_names {
+        for metric in target_metrics {
             let client = Arc::clone(&client);
+            let name = Arc::clone(&metric.name);
+            let query = Arc::clone(&metric.query);
             joinset.spawn(async move { 
-                let result = client.query(&metric.1).get().await
+                let result = client.query(query).get().await
                     .ok()
                     .and_then(|response| get_metric(response));
                 
-                (metric.0.unwrap_or(metric.1), result)
+                (name, result)
             });
         }
 
@@ -111,12 +114,13 @@ fn get_metric(result: PromqlResult) -> Option<f64> {
 
     let (_, sample) = result.into_inner().0
         .into_vector()
-        .map(|mut vec| 
-            vec.remove(0)
+        .ok()
+        .and_then(|vec| 
+            vec.get(0).cloned()
         )
         .map(|metric| {
             metric.into_inner()
-        }).ok()?;
+        })?;
     
     let value = sample.value();
     if value.is_nan() { Some(0.0) }

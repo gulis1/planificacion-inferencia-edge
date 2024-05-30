@@ -1,11 +1,12 @@
 mod watcher;
-mod metrics;
+pub mod metrics;
 pub mod server;
 pub mod policy;
 pub mod hardware;
 
 use std::sync::Arc;
 use kube::Client;
+use metrics::Metric;
 use policy::{Policy, RequestContext};
 use tokio::sync::{mpsc, oneshot};
 use serde_json::Value as JsonValue;
@@ -36,7 +37,8 @@ pub async fn main_task<P, R> (
     pod_namespace: String, 
     pod_name: String,
     pod_uuid: Uuid,
-    policy: P
+    policy: P,
+    metrics: Vec<Metric>
 ) -> Result<()>
 where P: Policy<R> + 'static,
       R: RequestContext + 'static
@@ -60,8 +62,7 @@ where P: Policy<R> + 'static,
         sender.clone()
     );
 
-    let _metrics_client = PrometheusClient::new("http://localhost:9090",
-        sender.clone())?;
+    let _metrics_client = PrometheusClient::new("http://localhost:9090", metrics, sender.clone())?;
 
     // Update the server with the probed hardware.
     watcher.add_annot(vec![(HW_ANNOT, hw_info)]).await;
