@@ -165,6 +165,7 @@ def pruebas(args):
         if res.route is None:
             print(f"Thread: {thread_id} failed")
         else:
+            print(f"Thread {thread_id}: {res.total_ms}ms, {res.route}")
             times.append(res.total_ms)
             node = res.route.split("->")[-1]
             try:

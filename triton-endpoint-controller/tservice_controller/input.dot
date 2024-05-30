@@ -2,9 +2,8 @@ digraph G {
   //marbore -> artecslab003
   //marbore -> ocejon
 
-  //artecslab003 -> marbore
-  //artecslab003 -> ocejon
-  artecslab003
+  artecslab003 -> marbore
+  artecslab003 -> ocejon
   
   alpinevm1 -> marbore
   alpinevm1 -> ocejon
