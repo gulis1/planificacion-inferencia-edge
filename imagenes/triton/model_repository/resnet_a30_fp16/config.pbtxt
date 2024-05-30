@@ -1,0 +1,3 @@
+name: "resnet_a30_fp16"
+platform: "tensorrt_plan"
+max_batch_size: 0

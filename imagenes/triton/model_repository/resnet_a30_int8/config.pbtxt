@@ -1,0 +1,2 @@
+platform: "tensorrt_plan"
+max_batch_size: 0
