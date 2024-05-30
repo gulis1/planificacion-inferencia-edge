@@ -52,7 +52,14 @@ pub struct Model {
 
 pub fn read_models(path: &str) -> Result<Vec<Model>> {
     
-    let hw_info = get_hardware_info();
+    let mut hw_info = get_hardware_info();
+
+    // Ñapa para diferenciar la orin normal de la nano.
+    if hw_info.gpus.get(0).is_some_and(|gpu| gpu.name == "Orin" && gpu.core_count == 1024) {
+        hw_info.gpus[0].name.push_str("_nano");
+    }
+
+
     let mut models: Vec<Model> = csv::Reader::from_path(path)?
         .deserialize()
         .flatten()
