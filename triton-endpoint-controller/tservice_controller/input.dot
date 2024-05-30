@@ -14,4 +14,7 @@ digraph G {
   alpinevm2 -> ocejon
   alpinevm2 -> artecslab003
   alpinevm2 -> alpinevm1
+
+  orin2
+  jorinnano
 }
