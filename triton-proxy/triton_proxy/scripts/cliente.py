@@ -68,11 +68,9 @@ def preprocess_image(modelo: ModelConfig, image: Image):
     if modelo.format == "FORMAT_NCHW":
         image_data = np.transpose(image_data, (2, 0, 1))
     
-    # Hay que enviar un tensor de dimensiones (32, 224, 224, 3) (32 imagenes).
-    # Aqui lo que hago es repetir la misma 32 veces.
+    image_data = np.expand_dims(image_data, axis=0)
     if modelo.batch_size > 1:
         #print(f"Batch size == {modelo.batch_size}, se va a replicar la imágen {modelo.batch_size} veces")
-        image_data = np.expand_dims(image_data, axis=0)
         image_data = np.repeat(image_data, modelo.batch_size, axis=0)
 
     infer_input = tritonclient.InferInput(modelo.input_name, image_data.shape, modelo.input_type)
