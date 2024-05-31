@@ -1,17 +1,18 @@
 mod policies;
 mod utils;
 
-use std::{env, sync::Arc};
+use std::env;
 use kube::{Client, Config};
 use log::{error, info};
 use anyhow::{anyhow, Context, Result};
-use policies::{min_queue::MinQueue, SimpleContext};
+use policies::{
+    SimpleContext,
+    requisitos::Requisitos
+};
 use triton_proxy_lib::metrics::Metric;
 use uuid::Uuid;
 
-
 const CSV_MODELOS: &str = "./modelos.csv";
-
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<()> {
@@ -36,11 +37,11 @@ async fn main() -> Result<()> {
     };
 
     let (pod_namespace, pod_name, pod_uuid) = get_env_vars()?;
-    let policy = MinQueue::new(CSV_MODELOS)?;
+    let policy = Requisitos::new(CSV_MODELOS)?;
     let metrics = get_target_metrics();
     match client {
         Ok(client) => {
-            triton_proxy_lib::main_task::<MinQueue, SimpleContext>(
+            triton_proxy_lib::main_task::<Requisitos, SimpleContext>(
                 client,
                 pod_namespace,
                 pod_name,

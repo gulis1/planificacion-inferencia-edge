@@ -22,7 +22,7 @@ impl Random {
 
 impl<R: RequestContext> Policy<R> for Random {
      
-    async fn choose_target(&self, _request: &Request<R>, endpoints: &Endpoints) -> Uuid {
+    async fn choose_target(&self, _request: &Request<R>, endpoints: &Endpoints<R>) -> Uuid {
 
         let read_handle = endpoints;
         let n_nodes = read_handle.len();

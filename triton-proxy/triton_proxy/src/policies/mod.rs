@@ -9,7 +9,7 @@ use std::time::Instant;
 use anyhow::{Result, anyhow};
 use serde::Deserialize;
 use tokio::{io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter}, net::TcpStream};
-use triton_proxy_lib::{hardware::{get_hardware_info, SystemInfo}, policy::{Receiver, Request, RequestContext, Sender}};
+use triton_proxy_lib::{hardware::{get_hardware_info, SystemInfo}, policy::{Receiver, Request, RequestContext, Sender}, server::{Endpoint, Endpoints}};
 
 pub use min_latencia::MinLatencia;
 #[derive(Debug, Clone)]
@@ -17,6 +17,10 @@ pub struct SimpleContext {
     pub priority: u32,
     pub accuracy: u32,
 }
+
+type TritonRequest = Request<SimpleContext>;
+type TritonEndpoint = Endpoint<SimpleContext>;
+type TritonEndpoints = Endpoints<SimpleContext>;
 
 impl RequestContext for SimpleContext {
     async fn receive(reader: &mut Receiver<'_>) -> Result<Self, std::io::Error> {

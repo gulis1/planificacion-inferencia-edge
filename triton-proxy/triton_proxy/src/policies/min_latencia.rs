@@ -22,7 +22,7 @@ pub struct MinLatencia {
 
 impl Policy<SimpleContext> for MinLatencia {
 
-    async fn choose_target(&self, request: &Request<SimpleContext>, endpts: &Endpoints) -> Uuid {
+    async fn choose_target(&self, request: &Request<SimpleContext>, endpts: &Endpoints<SimpleContext>) -> Uuid {
 
         log::info!("MIERDA: {:?}", request.previous_nodes);
         let node_uuid = endpts.iter()
@@ -52,13 +52,13 @@ impl<'a> MinLatencia {
 }
 
 /// Devuelve 0 si no se ha usado nunca.
-fn calcular_peso(endp: &Endpoint) -> u32 {
+fn calcular_peso(endp: &Endpoint<SimpleContext>) -> u32 {
     
     let numero_endps = endp.last_results.len() as u32;
     let sum_latencia: u32 = endp.last_results.iter()
         .map(|res| {
             match res {
-                Ok(dur) => dur.as_millis() as u32,
+                Ok(res) => res.duration.as_millis() as u32,
                 Err(_) => 10 * 1000 // 10 segundos si hubo fallo.
             }
         })

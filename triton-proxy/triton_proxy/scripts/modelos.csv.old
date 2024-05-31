@@ -1,0 +1,8 @@
+name,format,batch_size,channels,width,height,input_type,input_name,output_name,compatible_gpus,perf,accuracy
+resnet,FORMAT_NCHW,1,3,224,224,FP32,input,out_d0,,5,10
+resnet_a30_fp16,FORMAT_NCHW,1,3,224,224,FP32,input,out_d0,NVIDIA A30,7,7
+resnet_a30_int8,FORMAT_NCHW,1,3,224,224,FP32,input,out_d0,NVIDIA A30,10,7
+resnet_orin_fp16,FORMAT_NCHW,1,3,224,224,FP32,input,out_d0,Orin,7,7
+resnet_orin_int8,FORMAT_NCHW,1,3,224,224,FP32,input,out_d0,Orin,10,7
+resnet_nano_fp16,FORMAT_NCHW,1,3,224,224,FP32,input,out_d0,Orin_nano,10,7
+resnet_nano_int8,FORMAT_NCHW,1,3,224,224,FP32,input,out_d0,Orin_nano,10,7

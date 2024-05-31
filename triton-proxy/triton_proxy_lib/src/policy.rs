@@ -49,6 +49,6 @@ impl<R: RequestContext> Debug for Request<R> {
 }
 
 pub trait Policy<R: RequestContext>: Default + Send + Sync {
-    fn choose_target(&self, request: &Request<R>, endpoints: &Endpoints) -> impl std::future::Future<Output = Uuid> + std::marker::Send;
+    fn choose_target(&self, request: &Request<R>, endpoints: &Endpoints<R>) -> impl std::future::Future<Output = Uuid> + std::marker::Send;
     fn process_locally(&self, request: &Request<R>) -> impl std::future::Future<Output = Result<Vec<u8>>> + std::marker::Send;
 }

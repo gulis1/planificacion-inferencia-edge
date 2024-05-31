@@ -24,7 +24,7 @@ impl MinQueue {
 
 impl Policy<SimpleContext> for MinQueue {
     
-    async fn choose_target(&self, request: &Request<SimpleContext>, endps: &Endpoints) -> Uuid {
+    async fn choose_target(&self, request: &Request<SimpleContext>, endps: &Endpoints<SimpleContext>) -> Uuid {
         
         let nodes = endps.iter()
             .filter(|(uuid, _)| !request.previous_nodes.contains(uuid));

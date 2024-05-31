@@ -22,10 +22,16 @@ const QUERY_MAX_ELLAPSED: Duration = Duration::from_secs(10);
 /// simultáneas.
 const MAX_CONCURRENT_METRICS_QUERY: usize = 2;
 
-pub type Endpoints = HashMap<Uuid, Endpoint>;
+pub type Endpoints<R> = HashMap<Uuid, Endpoint<R>>;
 
 #[derive(Debug, Clone)]
-pub struct Endpoint {
+pub struct PreviousResult<R: RequestContext> {
+    pub duration: Duration,
+    pub context: R
+}
+
+#[derive(Debug, Clone)]
+pub struct Endpoint<R: RequestContext> {
     pub name: Arc<str>,
     pub ip: Arc<str>,
     pub hw_info: Option<JsonValue>,
@@ -36,7 +42,7 @@ pub struct Endpoint {
     /// - None if the endpoint has never been used.
     /// - Ok(Duration) if the last request as succesfull and took Duration
     /// - Err(Instant) if the last request didnt complete. Stores the instant the request was made.
-    pub last_results: AllocRingBuffer <Result<Duration, Instant>>
+    pub last_results: AllocRingBuffer <Result<PreviousResult<R>, Instant>>
 }
 
 pub(crate) struct ProxyServer<T, R> 
@@ -44,7 +50,7 @@ where T: Policy<R>,
       R: RequestContext
 {
     self_uuid: Uuid,
-    endpoints: RwLock<Endpoints>,
+    endpoints: RwLock<Endpoints<R>>,
     query_sem: Semaphore,
     sender: MsgSender<'static>,
     policy: T,
@@ -205,7 +211,7 @@ where T: Policy<R> + 'static,
         // On sucess, store how long it took for the target to answer the last request.
         // On timeout or error, store the instant the error.
         let event = match &result {
-            Some(Ok(_)) => Ok(start.elapsed()),
+            Some(Ok(_)) => Ok(PreviousResult { duration: start.elapsed(), context: request.context }),
             _ => Err(Instant::now())
         };
         let mut write_handle = self.endpoints.write().await;
@@ -330,7 +336,7 @@ async fn send_request<R: RequestContext>(stream: &mut TcpStream, request: &Reque
     Ok(())
 }
 
-fn parse_endpoints(mut json: JsonValue) -> Result<HashMap<Uuid, Endpoint>> {
+fn parse_endpoints<R: RequestContext>(mut json: JsonValue) -> Result<HashMap<Uuid, Endpoint<R>>> {
     
     json.as_array_mut()
         .context("JSON is not an array.")?
