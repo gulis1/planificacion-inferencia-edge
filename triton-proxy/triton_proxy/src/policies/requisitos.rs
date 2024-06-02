@@ -38,6 +38,7 @@ pub fn est_tiempo_para_acc(ep: &TritonEndpoint, acc: u32) -> Option<u32> {
 }
 
 impl Policy<SimpleContext> for Requisitos {
+
     async fn choose_target(&self, request: &TritonRequest, endps: &TritonEndpoints) -> Uuid {
 
         // Quitar nodos anteriores para que no haya ciclos.
@@ -63,6 +64,8 @@ impl Policy<SimpleContext> for Requisitos {
             return *ep.0;
         }
 
+        // TODO: probar nodos que hace tiempo a los que no se envia.
+
         // Como última opción, se envia al que menos tiempo de respuesta ha dado anteriormente.
         *nodes.iter().min_by_key(|(_, ep)| promedio_latencia(ep)).unwrap().0
     }
@@ -71,7 +74,7 @@ impl Policy<SimpleContext> for Requisitos {
         
         // Coger el modelo más rapido con accuracy >= a la pedida.
         // En caso de que no haya ningun modelo con accuracy suficiente, usar el
-        // que más tenga.
+        // que más se acerque.
         let model = self.models.iter()
             .filter(|m| m.accuracy >= request.context.accuracy)
             .min_by_key(|m| m.perf)

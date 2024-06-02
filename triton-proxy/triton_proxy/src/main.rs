@@ -55,7 +55,6 @@ async fn main() -> Result<()> {
             Err(anyhow!("Failed to start Kubernetes client"))
         }
     }
-
 }
 
 fn get_target_metrics() -> Vec<Metric> {
