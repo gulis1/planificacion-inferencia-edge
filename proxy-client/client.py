@@ -137,14 +137,6 @@ def main():
     parser = argument_parser()
     args = parser.parse_args()
 
-    if args.priority < 0 or args.priority > 5:
-        print("Priority must be betweeo 0 and 5")
-        return
-
-    if args.accuracy < 0 or args.accuracy > 5:
-        print("Accuracy must be betweeo 0 and 5")
-        return
-
     host = args.url.split(":")[0]
     port = int(args.url.split(":")[1])
 

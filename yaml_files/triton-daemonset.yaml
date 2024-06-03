@@ -13,13 +13,13 @@ spec:
     spec:
       restartPolicy: Always
       containers:
-        - image: gulis1/custom_triton:0.2.0
+        - image: gulis1/custom_triton:0.2.2
           name: triton-server
           # Esto estoy bastante seguro de que no hace falta.
-          #ports:
-          #  - containerPort: 8000
-          #    hostPort: 8080
-          #    protocol: TCP
+          ports:
+            - containerPort: 8000
+              hostPort: 8080
+              protocol: TCP
 
         - image: gulis1/custom_prometheus:0.1.0
           name: triton-prometheus
