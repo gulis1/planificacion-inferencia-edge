@@ -3,10 +3,17 @@ use ringbuffer::{AllocRingBuffer, RingBuffer};
 use uuid::Uuid;use serde_json::Value as JsonValue;
 use anyhow::{Context, Result};
 use std::{
-    collections::HashMap, marker::PhantomData, net::SocketAddr, str::FromStr, sync::Arc, time::{Duration, Instant}
+    collections::HashMap,
+    marker::PhantomData, net::SocketAddr,
+    str::FromStr, sync::Arc, 
+    time::{Duration, Instant}
 };
 use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter}, net::{TcpListener, TcpSocket, TcpStream}, process::Command, sync::{oneshot, RwLock, Semaphore}, time::{sleep, timeout}
+    io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter},
+    net::{TcpListener, TcpSocket, TcpStream},
+    process::Command,
+    sync::{oneshot, RwLock, Semaphore},
+    time::{sleep, timeout}
 };
 
 use crate::{
@@ -26,7 +33,8 @@ pub type Endpoints<R> = HashMap<Uuid, Endpoint<R>>;
 
 #[derive(Debug, Clone)]
 pub struct PreviousResult<R: RequestContext> {
-    pub duration: Duration,
+    pub duration: Option<Duration>,
+    pub instant: Instant ,
     pub context: R
 }
 
@@ -42,7 +50,7 @@ pub struct Endpoint<R: RequestContext> {
     /// - None if the endpoint has never been used.
     /// - Ok(Duration) if the last request as succesfull and took Duration
     /// - Err(Instant) if the last request didnt complete. Stores the instant the request was made.
-    pub last_results: AllocRingBuffer <Result<PreviousResult<R>, Instant>>
+    pub last_results: AllocRingBuffer <PreviousResult<R>>
 }
 
 pub(crate) struct ProxyServer<T, R> 
@@ -210,9 +218,10 @@ where T: Policy<R> + 'static,
         };
         // On sucess, store how long it took for the target to answer the last request.
         // On timeout or error, store the instant the error.
+        let now = Instant::now();
         let event = match &result {
-            Some(Ok(_)) => Ok(PreviousResult { duration: start.elapsed(), context: request.context }),
-            _ => Err(Instant::now())
+            Some(Ok(_)) => PreviousResult { duration: Some(start.elapsed()), context: request.context, instant: now },
+            _ => PreviousResult { duration: None, instant: now, context: request.context }
         };
         let mut write_handle = self.endpoints.write().await;
         if let Some(ep) = write_handle.get_mut(&target_uuid) {

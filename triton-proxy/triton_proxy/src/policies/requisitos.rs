@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use itertools::Itertools;
 use ringbuffer::RingBuffer;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt};
@@ -8,7 +10,7 @@ use triton_proxy_lib::{
 use uuid::Uuid;
 use anyhow::Result;
 
-use crate::utils::{calcular_hw, carga_trabajo, escoger_n, promedio_latencia, Order};
+use crate::utils::{calcular_hw, cola_estimada_ms, escoger_n, promedio_latencia, Order};
 
 use super::{process_locally, read_models, Model, SimpleContext, TritonEndpoint, TritonEndpoints, TritonRequest};
 
@@ -31,9 +33,9 @@ pub fn est_tiempo_para_acc(ep: &TritonEndpoint, acc: u32) -> Option<u32> {
     
     ep.last_results
         .iter()
-        .flatten()
+        .filter(|r| r.duration.is_some())
         .min_by_key(|res| res.context.accuracy.abs_diff(acc))
-        .map(|r| r.duration.as_millis() as u32)
+        .map(|r| r.duration.unwrap().as_millis() as u32)
     
 }
 
@@ -54,7 +56,7 @@ impl Policy<SimpleContext> for Requisitos {
             });
         
         // Si alguno ha cumplido, enviar al que tenga menos trabajo.
-        if let Some(ep) = cumplen.min_by_key(|(_, ep)| carga_trabajo(ep)) {
+        if let Some(ep) = cumplen.min_by_key(|(_, ep)| cola_estimada_ms(ep)) {
             return *ep.0;
         }
         
@@ -64,7 +66,15 @@ impl Policy<SimpleContext> for Requisitos {
             return *ep.0;
         }
 
-        // TODO: probar nodos que hace tiempo a los que no se envia.
+        // 
+        let antiguo = nodes.iter()
+            .filter(|(_, ep)| {
+                let last_ind = ep.last_results.len() - 1;
+                let ultimo_envio = ep.last_results[last_ind].instant;
+                // Miramos que no se haya enviado desde hace 30? segundos.
+                ultimo_envio.elapsed() >= Duration::from_secs(30)
+            })
+            .min_by_key(|(_, ep)| cola_estimada_ms(ep));
 
         // Como última opción, se envia al que menos tiempo de respuesta ha dado anteriormente.
         *nodes.iter().min_by_key(|(_, ep)| promedio_latencia(ep)).unwrap().0

@@ -57,9 +57,10 @@ fn calcular_peso(endp: &Endpoint<SimpleContext>) -> u32 {
     let numero_endps = endp.last_results.len() as u32;
     let sum_latencia: u32 = endp.last_results.iter()
         .map(|res| {
-            match res {
-                Ok(res) => res.duration.as_millis() as u32,
-                Err(_) => 10 * 1000 // 10 segundos si hubo fallo.
+
+            match res.duration {
+                Some(dur) => dur.as_millis() as u32,
+                None => 10 * 1000
             }
         })
         .sum();

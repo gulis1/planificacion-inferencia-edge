@@ -67,6 +67,10 @@ fn get_target_metrics() -> Vec<Metric> {
         (
             "total_inferences",
             "sum(nv_inference_exec_count)"
+        ),
+        (
+            "pending_requests",
+            "sum(nv_inference_pending_request_count)"
         )
     ];
 

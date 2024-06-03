@@ -32,9 +32,10 @@ pub fn promedio_latencia(endp: &Endpoint<impl RequestContext>) -> u64 {
     let numero_endps = endp.last_results.len() as u64;
     let sum_latencia: u64 = endp.last_results.iter()
         .map(|res| {
-            match res {
-                Ok(res) => res.duration.as_millis() as u64,
-                Err(_) => 10 * 1000 // 10 segundos si hubo fallo.
+            match res.duration {
+                Some(dur) => dur.as_millis() as u64,
+                None => 10 * 1000
+                
             }
         })
         .sum();
@@ -74,15 +75,34 @@ pub fn calcular_hw(ep: &Endpoint<impl RequestContext>) -> u64 {
     hw_score
 }
 
-#[inline]
-pub fn carga_trabajo(ep: &Endpoint<impl RequestContext>) -> u64 {
-    let carga = ep.metrics
+pub fn cola_estimada_ms(ep: &Endpoint<impl RequestContext>) -> u64 {
+    
+    let q_dur_avg = ep.metrics
         .as_ref()
         .and_then(|metr| metr.get("queue_avg_5m"))
         .and_then(|v| v.as_f64())
-        .map(|v| v as u64)
-        .unwrap_or(u64::MAX);
+        .map(|v| v as u64);
+    
+    let n_queued = ep.metrics
+        .as_ref()
+        .and_then(|m| m.get("pending_requests"))
+        .and_then(|v| v.as_i64());
 
-    log::info!("Carga trabajo de {}: {}", ep.name, carga);
-    carga
+    
+    match (q_dur_avg, n_queued) {
+        (None, _) => {
+            log::error!("queue_avg_5m doest not exist for pod {}", ep.name);
+            u64::max_value()
+        },
+        (_, None) => {
+            log::error!("pending_requests does not exist for pod {}", ep.name );
+            u64::max_value()
+        },
+        (Some(dur), Some(n_q)) => {
+            let est = dur.checked_mul(n_q as u64)
+                .unwrap_or(u64::max_value());
+            log::info!("Carga trabajo de {}: {}", ep.name, est);
+            est
+        }
+    }
 }

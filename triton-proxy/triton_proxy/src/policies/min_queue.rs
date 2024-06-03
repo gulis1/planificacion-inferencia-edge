@@ -5,7 +5,7 @@ use triton_proxy_lib::{
     server::{Endpoint, Endpoints}
 };
 use uuid::Uuid;
-use crate::{policies::process_locally, utils::{calcular_hw, carga_trabajo, escoger_n, promedio_latencia, Order}};
+use crate::{policies::process_locally, utils::{calcular_hw, cola_estimada_ms, escoger_n, promedio_latencia, Order}};
 use super::{read_models, Model, SimpleContext};
 use anyhow::Result;
 
@@ -56,7 +56,7 @@ impl Policy<SimpleContext> for MinQueue {
                 log::info!("Política: petición prioridad baja accuracy baja.");
                 // Enviar al que menos carga de trabajo tenga.
                 *nodes
-                    .min_by_key(|(_uuid, ep)| carga_trabajo(ep))
+                    .min_by_key(|(_uuid, ep)| cola_estimada_ms(ep))
                     .unwrap()
                     .0
             },
@@ -69,7 +69,7 @@ impl Policy<SimpleContext> for MinQueue {
                 log::info!("Nodos más potentes escogidos: {:#?}", mas_potentes);
                 // 2. De los (3), escoger el que tenga menor carga de trabajo.
                 mas_potentes.iter()
-                    .min_by_key(|(_uuid, ep)| carga_trabajo(ep))
+                    .min_by_key(|(_uuid, ep)| cola_estimada_ms(ep))
                     .unwrap_or(&mas_potentes[0])
                     .0
             },
