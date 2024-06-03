@@ -1,11 +1,11 @@
 name,format,batch_size,channels,width,height,input_type,input_name,output_name,compatible_gpus,perf,accuracy
 resnet,FORMAT_NCHW,1,3,224,224,FP32,input,out_d0,,1000,95
-resnet_a30_tf32,FORMAT_NCHW,1,3,224,224,FP32,input,out_d0,NVIDIA A30,100,95
-resnet_a30_fp16,FORMAT_NCHW,1,3,224,224,FP32,input,out_d0,NVIDIA A30,55,90
-resnet_a30_int8,FORMAT_NCHW,1,3,224,224,FP32,input,out_d0,NVIDIA A30,30,85
-resnet_orin_tf32,FORMAT_NCHW,1,3,224,224,FP32,input,out_d0,Orin,120,95
-resnet_orin_fp16,FORMAT_NCHW,1,3,224,224,FP32,input,out_d0,Orin,75,90
-resnet_orin_int8,FORMAT_NCHW,1,3,224,224,FP32,input,out_d0,Orin,55,85
-resnet_nano_tf32,FORMAT_NCHW,1,3,224,224,FP32,input,out_d0,Orin_nano,150,95
-resnet_nano_fp16,FORMAT_NCHW,1,3,224,224,FP32,input,out_d0,Orin_nano,115,90
-resnet_nano_int8,FORMAT_NCHW,1,3,224,224,FP32,input,out_d0,Orin_nano,85,85
+resnet_a30_tf32,FORMAT_NCHW,1,3,224,224,FP32,input,out_d0,NVIDIA A30,25,95
+resnet_a30_fp16,FORMAT_NCHW,1,3,224,224,FP32,input,out_d0,NVIDIA A30,16,90
+resnet_a30_int8,FORMAT_NCHW,1,3,224,224,FP32,input,out_d0,NVIDIA A30,15,85
+resnet_orin_tf32,FORMAT_NCHW,1,3,224,224,FP32,input,out_d0,Orin,150,95
+resnet_orin_fp16,FORMAT_NCHW,1,3,224,224,FP32,input,out_d0,Orin,70,90
+resnet_orin_int8,FORMAT_NCHW,1,3,224,224,FP32,input,out_d0,Orin,50,85
+resnet_nano_tf32,FORMAT_NCHW,1,3,224,224,FP32,input,out_d0,Orin_nano,200,95
+resnet_nano_fp16,FORMAT_NCHW,1,3,224,224,FP32,input,out_d0,Orin_nano,140,90
+resnet_nano_int8,FORMAT_NCHW,1,3,224,224,FP32,input,out_d0,Orin_nano,110,85
