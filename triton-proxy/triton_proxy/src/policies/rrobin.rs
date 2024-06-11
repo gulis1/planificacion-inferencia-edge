@@ -25,22 +25,43 @@ impl Rrobin {
 impl Policy<SimpleContext> for Rrobin {
     async fn choose_target(&self, request: &TritonRequest, endpoints: &TritonEndpoints) -> Uuid {
 
-        if request.jumps == 0 {
-            let mut siguiente = self.siguiente.lock().await;
-            let ind = *siguiente;
-            *siguiente =  siguiente.wrapping_add(1);
-            drop(siguiente);
-            
-            let n_endps = endpoints.len();
-            *endpoints.iter().nth(ind % n_endps).unwrap().0
-        }
-        else {
-            log::info!("Sending request to local pod ({})", self.pod_name);
-            *endpoints.iter()
-                .filter(|(_, ep)| ep.name.as_ref() == self.pod_name.as_str())
-                .exactly_one()
-                .unwrap().0
-        }
+        let mut siguiente = self.siguiente.lock().await;
+        log::info!("rrobin: siguiente={}", *siguiente);
+        let uuid = match request.jumps {
+            0 => {
+                if *siguiente % 7 == 0 {
+                    log::info!("rrobin: origen %7");
+                    // Enviar local
+                    *endpoints.iter()
+                        .filter(|(_, ep)| ep.name.as_ref() == self.pod_name.as_str())
+                        .exactly_one()
+                        .unwrap().0
+                }
+                else {
+                    log::info!("rrobin: origen NO %7");
+                    *endpoints.iter()
+                        .filter(|(_, ep)| ep.name.as_ref() != self.pod_name.as_str())
+                        .exactly_one()
+                        .unwrap().0
+                }
+            },
+            1 => {
+                log::info!("rrobin: salto 1");
+                let ind = *siguiente;
+                let n_endps = endpoints.len();
+                *endpoints.iter().nth(ind % n_endps).unwrap().0
+            },
+            _ => {
+                log::info!("rrobin: salto > que 1");
+                *endpoints.iter()
+                    .filter(|(_, ep)| ep.name.as_ref() == self.pod_name.as_str())
+                    .exactly_one()
+                    .unwrap().0    
+            }
+        };
+
+        *siguiente =  siguiente.wrapping_add(1);
+        uuid
     }
 
     async fn process_locally(&self, request: &TritonRequest) -> Result<Vec<u8>> {
