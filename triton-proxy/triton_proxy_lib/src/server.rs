@@ -3,7 +3,7 @@ use ringbuffer::{AllocRingBuffer, RingBuffer};
 use uuid::Uuid;use serde_json::Value as JsonValue;
 use anyhow::{Context, Result};
 use std::{
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     marker::PhantomData, net::SocketAddr,
     str::FromStr, sync::Arc, 
     time::{Duration, Instant}
@@ -29,7 +29,7 @@ const QUERY_MAX_ELLAPSED: Duration = Duration::from_secs(10);
 /// simultáneas.
 const MAX_CONCURRENT_METRICS_QUERY: usize = 2;
 
-pub type Endpoints<R> = HashMap<Uuid, Endpoint<R>>;
+pub type Endpoints<R> = BTreeMap<Uuid, Endpoint<R>>;
 
 #[derive(Debug, Clone)]
 pub struct PreviousResult<R: RequestContext> {
@@ -345,7 +345,7 @@ async fn send_request<R: RequestContext>(stream: &mut TcpStream, request: &Reque
     Ok(())
 }
 
-fn parse_endpoints<R: RequestContext>(mut json: JsonValue) -> Result<HashMap<Uuid, Endpoint<R>>> {
+fn parse_endpoints<R: RequestContext>(mut json: JsonValue) -> Result<Endpoints<R>> {
     
     json.as_array_mut()
         .context("JSON is not an array.")?

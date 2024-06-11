@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicUsize, Ordering};
+
 use anyhow::Result;
 use itertools::Itertools;
 use tokio::sync::Mutex;
@@ -9,14 +11,14 @@ use super::{process_locally, read_models, Model, SimpleContext, TritonEndpoints,
 pub struct Rrobin {
     pod_name: String,
     models: Vec<Model>,
-    siguiente: Mutex<usize>,
+    siguiente: AtomicUsize,
 }
 
 impl Rrobin {
     pub fn new(path: &str, pod_name: String) -> Result<Self> {
         Ok(Self {
             pod_name, 
-            siguiente: Mutex::new(0),
+            siguiente: AtomicUsize::new(0),
             models: read_models(path)?,
         })
     }
@@ -24,50 +26,13 @@ impl Rrobin {
 
 impl Policy<SimpleContext> for Rrobin {
     async fn choose_target(&self, request: &TritonRequest, endpoints: &TritonEndpoints) -> Uuid {
-
-        let mut siguiente = self.siguiente.lock().await;
-        log::info!("rrobin: siguiente={}", *siguiente);
-        let uuid = match request.jumps {
-            0 => {
-                if *siguiente % 7 == 0 {
-                    log::info!("rrobin: origen %7");
-                    // Enviar local
-                    *endpoints.iter()
-                        .sorted_by_key(|p| p.0)
-                        .filter(|(_, ep)| ep.name.as_ref() == self.pod_name.as_str())
-                        .exactly_one()
-                        .unwrap().0
-                }
-                else {
-                    log::info!("rrobin: origen NO %7");
-                    *endpoints.iter()
-                        .sorted_by_key(|p| p.0)
-                        .filter(|(_, ep)| ep.name.as_ref() != self.pod_name.as_str())
-                        .exactly_one()
-                        .unwrap().0
-                }
-            },
-            1 => {
-                log::info!("rrobin: salto 1");
-                let ind = *siguiente;
-                let n_endps = endpoints.len();
-                *endpoints.iter()
-                    .sorted_by_key(|ep| ep.0)
-                    .nth(ind % n_endps)
-                    .unwrap().0
-            },
-            _ => {
-                log::info!("rrobin: salto > que 1");
-                *endpoints.iter()
-                    .sorted_by_key(|ep| ep.0)
-                    .filter(|(_, ep)| ep.name.as_ref() == self.pod_name.as_str())
-                    .exactly_one()
-                    .unwrap().0    
-            }
-        };
-
-        *siguiente =  siguiente.wrapping_add(1);
-        uuid
+        
+        let siguiente = self.siguiente.fetch_add(1, Ordering::Relaxed);
+        log::info!("rrobin: siguiente={}", siguiente);
+        let n_endps = endpoints.len();
+        *endpoints.iter()
+            .nth(siguiente % n_endps)
+            .unwrap().0
     }
 
     async fn process_locally(&self, request: &TritonRequest) -> Result<Vec<u8>> {
