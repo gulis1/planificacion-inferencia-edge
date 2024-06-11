@@ -9,7 +9,7 @@ use super::{process_locally, read_models, Model, SimpleContext, TritonEndpoints,
 pub struct Rrobin {
     pod_name: String,
     models: Vec<Model>,
-    siguiente: Mutex<usize>
+    siguiente: Mutex<usize>,
 }
 
 impl Rrobin {
@@ -17,7 +17,7 @@ impl Rrobin {
         Ok(Self {
             pod_name, 
             siguiente: Mutex::new(0),
-            models: read_models(path)?
+            models: read_models(path)?,
         })
     }
 }
@@ -33,6 +33,7 @@ impl Policy<SimpleContext> for Rrobin {
                     log::info!("rrobin: origen %7");
                     // Enviar local
                     *endpoints.iter()
+                        .sorted_by_key(|p| p.0)
                         .filter(|(_, ep)| ep.name.as_ref() == self.pod_name.as_str())
                         .exactly_one()
                         .unwrap().0
@@ -40,6 +41,7 @@ impl Policy<SimpleContext> for Rrobin {
                 else {
                     log::info!("rrobin: origen NO %7");
                     *endpoints.iter()
+                        .sorted_by_key(|p| p.0)
                         .filter(|(_, ep)| ep.name.as_ref() != self.pod_name.as_str())
                         .exactly_one()
                         .unwrap().0
@@ -49,11 +51,15 @@ impl Policy<SimpleContext> for Rrobin {
                 log::info!("rrobin: salto 1");
                 let ind = *siguiente;
                 let n_endps = endpoints.len();
-                *endpoints.iter().nth(ind % n_endps).unwrap().0
+                *endpoints.iter()
+                    .sorted_by_key(|ep| ep.0)
+                    .nth(ind % n_endps)
+                    .unwrap().0
             },
             _ => {
                 log::info!("rrobin: salto > que 1");
                 *endpoints.iter()
+                    .sorted_by_key(|ep| ep.0)
                     .filter(|(_, ep)| ep.name.as_ref() == self.pod_name.as_str())
                     .exactly_one()
                     .unwrap().0    
