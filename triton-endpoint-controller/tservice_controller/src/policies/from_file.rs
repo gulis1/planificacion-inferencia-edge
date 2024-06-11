@@ -44,7 +44,7 @@ impl Policy for FromFile {
     fn pod_added(&mut self, graph: &mut GraphWrapper, pods: &PodMap, pod: Uuid) -> Vec<Uuid> {
         
         if !self.target_graph.contains_node(pod) {
-            log::warn!("The service does not container pod {pod}");
+            log::warn!("The service does not contain pod {pod}");
             return Vec::new();
         }
         

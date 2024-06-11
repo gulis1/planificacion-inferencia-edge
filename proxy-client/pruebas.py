@@ -80,8 +80,8 @@ def gen_pod_json(namespace):
 
 def launch_client(args, thread_id: int, output_vec: list[str]):
     
-    prioridad = 1
-    accuracy = 0
+    prioridad = 10000
+    accuracy = 60 
 
     output = subprocess.check_output([
         "python3",
@@ -99,6 +99,7 @@ def launch_client(args, thread_id: int, output_vec: list[str]):
     output += "\nPrioridad: " + str(prioridad)
     output += "\nAccuracy: " + str(accuracy)
     print(f"Thread {thread_id} finished") 
+    print(output)
     output_vec[thread_id] = output
 
 class InferenceResult:
@@ -107,6 +108,8 @@ class InferenceResult:
     route: str
     prioridad: int
     accuracy: int
+    t_inferencia: int
+    t_pprocesado: int
 
     def __init__(self):
         self.total_ms = None
@@ -114,7 +117,8 @@ class InferenceResult:
         self.route = None
         self.prioridad = None
         self.accuracy = None
-        pass
+        self.t_inferencia = None
+        self.t_pprocesado = None
     
 def parse_result(c: str, pods) -> InferenceResult:
     lines = [line.split(":") for line in c.splitlines() if len(line) > 0]
@@ -125,7 +129,7 @@ def parse_result(c: str, pods) -> InferenceResult:
         right = line[1].strip()
         
         if left == "Took":
-            result.total_ms = float(right[:-3])
+            result.total_ms = round(float(right[:-3]), 2)
         elif left == "Model":
             result.model = right
         elif left == "Route":
@@ -136,6 +140,10 @@ def parse_result(c: str, pods) -> InferenceResult:
             result.prioridad = int(right)
         elif left == "Accuracy":
             result.accuracy = int(right)
+        elif left == "Tiempo inferencia (ms)":
+            result.t_inferencia = round(float(right), 2)
+        elif left == "Tiempo preprocesado (ms)":
+            result.t_pprocesado = round(float(right), 2)
 
     return result
 
@@ -165,7 +173,7 @@ def pruebas(args):
         if res.route is None:
             print(f"Thread: {thread_id} failed")
         else:
-            print(f"Thread {thread_id}: {res.total_ms}ms, {res.route}")
+            print(f"Thread {thread_id}: {res.total_ms}ms (inf: {res.t_inferencia}ms, pproc: {res.t_pprocesado}ms), {res.route}")
             times.append(res.total_ms)
             node = res.route.split("->")[-1]
             try:

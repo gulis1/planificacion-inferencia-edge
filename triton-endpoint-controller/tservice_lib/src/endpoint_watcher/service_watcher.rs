@@ -3,7 +3,7 @@ use super::Message;
 use std::collections::BTreeMap;
 use std::str::FromStr;
 use std::sync::Arc;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use futures::TryStreamExt;
 use k8s_openapi::api::core::v1::Pod;
 use k8s_openapi::Metadata;
@@ -116,35 +116,6 @@ impl<T: Policy> ServiceWatcher<T> {
             self.notify_pods(&affected);
         }
 
-        Ok(())
-    }
-
-    pub fn set_graph(&mut self, graph: DiGraphMap<Uuid, ()>) -> Result<()> {
-        
-        if self.pods.len() != graph.node_count() {
-            return Err(anyhow!("
-                The number of pods in the graph ({}) and the number
-                of registered pods in the service ({}) is not the same.",
-                graph.node_count(),
-                self.pods.len()
-            ));
-        }
-        
-        let invalid_nodes: Vec<Uuid> = graph.nodes()
-            .filter(|node| !self.pods.contains_key(node))
-            .collect();
-
-        if invalid_nodes.len() > 0 {
-            return Err(anyhow!(
-                "The following Uuid don't match any pod in the service: {:?}",
-                invalid_nodes)
-            );
-        }
-
-        self.pod_graph = graph;
-        for pod in self.pods.values() {
-            self.notify_pod(&pod);
-        }
         Ok(())
     }
 

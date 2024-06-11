@@ -33,7 +33,7 @@ async fn main() -> Result<()> {
         
         Ok(client) => {
             
-            tservice_lib::run::<POLICY>(client, "./graph.json");
+            tservice_lib::run::<POLICY>(client);
             tokio::signal::ctrl_c().await.unwrap();
             Ok(())
         },

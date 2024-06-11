@@ -1,19 +1,15 @@
 mod service_watcher;
 
-use std::{collections::HashMap, path::PathBuf, str::FromStr}; 
+use std::{collections::HashMap, str::FromStr}; 
 use k8s_openapi::api::core::v1::Pod;
 use log::{debug, info};
 use kube::Client;
-use petgraph::graphmap::DiGraphMap;
-use serde_json::Value as JsonValue;
-use tokio::{
-    fs, 
-    sync::{mpsc, oneshot}
-};
+
+use tokio::sync::{mpsc, oneshot};
 use service_watcher::ServiceWatcher;
 use crate::policy::Policy;
 use uuid::Uuid;
-use anyhow::{Context, Result};
+use anyhow::Context;
 
 const CHANNEL_SIZE: usize = 128;
 
@@ -23,7 +19,6 @@ pub enum Message {
     DeleteService  { service_uid: Uuid },
     PodReady { service_uid: Uuid, pod: Pod },
     PodUnready { service_uid: Uuid, pod: Pod },
-    LoadGraphFromFile { file: PathBuf },
     ExportGraph { service_uid: Uuid, response_to: oneshot::Sender<String> }
 }
 
@@ -61,12 +56,6 @@ pub fn run<T: Policy>(client: Client) -> mpsc::Sender<Message> {
                     if let Some(service) = service_watchers.get_mut(&service_uid) {
                         info!("Deleted por for service {service_uid}");
                         service.remove_pod(pod).expect("AAA");
-                    }
-                },
-                Message::LoadGraphFromFile { file } => {
-                    match parse_graph_file(&mut service_watchers, file).await {
-                        Ok(_) => log::info!("Succesfully applied graph file."),
-                        Err(e) => log::error!("Failed to parse graph file: {e}")
                     }
                 },
                 Message::ExportGraph { service_uid, response_to } => {
@@ -116,41 +105,3 @@ async fn graph_export_server(sender: mpsc::Sender<Message>) {
     server.listen("0.0.0.0:9091").await.expect("HTTP server ended.");
 
 }
-
-async fn parse_graph_file<T>(services: &mut HashMap<Uuid, ServiceWatcher<T>>, file: PathBuf) -> Result<()>
-    where T: Policy
-{
-
-    let content = fs::read_to_string(file).await?;
-    let parsed: JsonValue = serde_json::from_str(&content)?;
-    
-    let service_uid: Uuid = parsed.get("service_uuid")
-        .context("Json missing key 'service_uuid'.")?
-        .as_str()
-        .context("Invalid value for key 'service_uuid'.")?
-        .try_into()?;
-
-    let dot_content = parsed.get("graph")
-        .context("Json missing key 'graph'.")?
-        .as_str().unwrap();
-
-    let mut g: DiGraphMap<Uuid, ()> = DiGraphMap::new();
-    let parser = rust_dot::parse_string(dot_content);
-    
-    for node in &parser.nodes {
-        let uid = Uuid::from_str(node)?;
-        g.add_node(uid);
-    }
-
-    for edge in &parser.edges {
-        let src = Uuid::from_str(parser.nodes.get(edge.0).unwrap())?;
-        let dst = Uuid::from_str(parser.nodes.get(edge.1).unwrap())?;
-
-        g.add_edge(src, dst, ());
-    }
-
-    let service = services.get_mut(&service_uid)
-        .with_context(|| format!("Service {service_uid} not found."))?; 
-    service.set_graph(g)
-}
-

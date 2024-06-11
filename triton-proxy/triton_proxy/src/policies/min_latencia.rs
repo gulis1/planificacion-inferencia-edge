@@ -42,13 +42,12 @@ impl Policy<SimpleContext> for MinLatencia {
     }
 }
 
-impl<'a> MinLatencia {
-     fn choose_model(&'a self, _request: &Request<SimpleContext>) -> &'a Model {
+impl MinLatencia {
+     fn choose_model(&self, _request: &Request<SimpleContext>) -> &Model {
         self.models.iter()
             .max_by_key(|model| model.perf)
             .unwrap()
      }
-
 }
 
 /// Devuelve 0 si no se ha usado nunca.

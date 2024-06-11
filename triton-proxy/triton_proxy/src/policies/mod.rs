@@ -3,6 +3,7 @@ pub mod random;
 pub mod min_latencia;
 pub mod min_queue;
 pub mod requisitos;
+pub mod rrobin;
 
 use std::time::Instant;
 

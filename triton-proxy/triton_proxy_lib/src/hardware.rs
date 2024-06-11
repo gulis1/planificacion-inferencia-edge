@@ -15,7 +15,7 @@ pub struct SystemInfo {
 
 impl ToString for SystemInfo {
     fn to_string(&self) -> String {
-        serde_json::to_string(self).unwrap()
+        serde_json::to_string_pretty(self).unwrap()
     }
 }
 
