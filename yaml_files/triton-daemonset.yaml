@@ -31,7 +31,7 @@ spec:
             - containerPort: 9090
               hostPort: 9090
               protocol: TCP
-        - image: gulis1/temporal:1.0.0-rrobin
+        - image: gulis1/temporal:1.0.0-minlatencia
           name: triton-proxy
           ports:
             - containerPort: 9999

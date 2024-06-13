@@ -46,7 +46,7 @@ impl Policy<SimpleContext> for MinLatencia {
     async fn process_locally(&self, request: &Request<SimpleContext>) -> Result<Vec<u8>> {
         
         let model = self.models.iter()
-            .max_by_key(|model| model.perf)
+            .min_by_key(|model| model.perf)
             .unwrap();
 
         process_locally(request, model).await
