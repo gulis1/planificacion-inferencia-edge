@@ -1,9 +1,8 @@
 digraph G {
   jorinnano -> artecslab003
-
-  artecslab003 -> alpinevm1
-  artecslab003 -> alpinevm2
-  artecslab003 -> orin2
-  artecslab003 -> ocejon
-  artecslab003 -> marbore
+  jorinnano -> alpinevm1
+  jorinnano -> alpinevm2
+  jorinnano -> orin2
+  jorinnano -> ocejon
+  jorinnano -> marbore
 }

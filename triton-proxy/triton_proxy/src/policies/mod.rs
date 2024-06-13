@@ -1,18 +1,30 @@
 #![allow(unused)]
-pub mod random;
-pub mod min_latencia;
-pub mod min_queue;
-pub mod requisitos;
-pub mod rrobin;
+mod random;
+mod min_latencia;
+mod min_queue;
+mod requisitos;
+mod rrobin;
+
+
+pub use random::Random;
+pub use rrobin::Rrobin;
+pub use min_latencia::MinLatencia;
+pub use requisitos::Requisitos;
 
 use std::time::Instant;
 
 use anyhow::{Result, anyhow};
 use serde::Deserialize;
-use tokio::{io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter}, net::TcpStream};
-use triton_proxy_lib::{hardware::{get_hardware_info, SystemInfo}, policy::{Receiver, Request, RequestContext, Sender}, server::{Endpoint, Endpoints}};
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter},
+    net::TcpStream
+};
+use triton_proxy_lib::{
+    hardware::{get_hardware_info, SystemInfo},
+    policy::{Receiver, Request, RequestContext, Sender},
+    server::{Endpoint, Endpoints}
+};
 
-pub use min_latencia::MinLatencia;
 #[derive(Debug, Clone)]
 pub struct SimpleContext {
     pub priority: u32,

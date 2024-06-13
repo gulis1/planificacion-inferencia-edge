@@ -4,7 +4,9 @@ from threading import Thread
 from time import sleep
 import json
 import matplotlib.pyplot as plt
+import matplotlib.ticker as tkr
 import numpy as np
+import pickle
 
 def argument_parser() -> ArgumentParser:
 
@@ -25,14 +27,13 @@ def argument_parser() -> ArgumentParser:
         help="Image path",
     )
 
-    #parser.add_argument(
-    #    "-a",
-    #    "--accuracy",
-    #    type=int,
-    #    required=False,
-    #    default=0,
-    #    help="Accuracy",
-    #)
+    parser.add_argument(
+        "-l",
+        "--load",
+        type=str,
+        required=False,
+        help="Load data from file",
+    )
 
     parser.add_argument(
         "-t",
@@ -153,71 +154,129 @@ def pruebas(args):
     with open("pods.json") as file:
         pods = json.load(file)
     
-    output_vec = [None for _ in range(args.nreq)]
-    threads = []
-    for i in range(args.nreq):
-        t = Thread(target = lambda: launch_client(args, i, output_vec))
-        t.start()
-        threads.append(t)
-        sleep(float(args.time) / 1000.0)
-    
-    for t in threads:
-        t.join()
+    results = []
+    if args.load:
+        with open(args.load) as file:
+            content = json.load(file)
+            args.time = content["time"]
+            args.nreq = content["nreq"]
+            for row in content["results"]:
+                res = InferenceResult()
+                res.__dict__ = row
+                results.append(res)
+
+    else:
+        output_vec = [None for _ in range(args.nreq)]
+        threads = []
+        for i in range(args.nreq):
+            t = Thread(target = lambda: launch_client(args, i, output_vec))
+            t.start()
+            threads.append(t)
+            sleep(float(args.time) / 1000.0)
+        
+        for t in threads:
+            t.join()
+        
+        
+        results = [parse_result(o, pods) for o in output_vec]
+        with open("datos.json", "w") as file:
+            content = {
+                "time": args.time,
+                "nreq": args.nreq,
+                "results": [res.__dict__ for res in results]
+            }
+            json.dump(content, file, indent=4)
     
     times = []
     nodes = dict()
     models = dict()
-    results = [parse_result(o, pods) for o in output_vec]
-
     for thread_id, res in enumerate(results):
         if res.route is None:
             print(f"Thread: {thread_id} failed")
+            times.append(None)
         else:
             print(f"Thread {thread_id}: {res.total_ms}ms (inf: {res.t_inferencia}ms, pproc: {res.t_pprocesado}ms), {res.route}")
             times.append(res.total_ms)
             node = res.route.split("->")[-1]
             try:
-                nodes[node].append(thread_id * args.time)
+                nodes[node][0].append(thread_id * args.time)
+                nodes[node][1].append(res.total_ms)
             except KeyError:
-                nodes[node] = [thread_id * args.time]
+                nodes[node] = ([thread_id * args.time], [res.total_ms])
 
             try:
                 models[res.model].append(thread_id * args.time)
             except KeyError:
                 models[res.model] = [thread_id * args.time]
     
+    fig, ax = plt.subplots(1,1) 
+
     # Dibujar grafica tiempo
+    node_names = sorted(nodes.keys())
+    for nodo in node_names:
+        info = nodes[nodo]
+        plt.scatter(info[0], info[1], label=nodo, zorder=2)
+    
+    cm = 1/2.54
+
     rango = range(0, args.nreq * args.time, args.time)
     plt.title("Tiempo de respuesta")
     plt.xlabel("Tiempo (ms)")
     plt.ylabel("Latencia (ms)")
-    plt.plot(rango, times)
-    plt.savefig("tiempos.png")
+    plt.plot(rango, times, zorder=1)
     
+    plt.legend()
+    fig = plt.gcf()
+    fig_width = max(len(times) * 0.5, 14) * cm + 3
+    fig.set_size_inches(fig_width, 6)
+    ax.xaxis.set_minor_locator(tkr.FixedLocator(list(range(0, args.time * args.nreq, args.time))))
+    ax.xaxis.set_major_locator(tkr.MaxNLocator(10))
+    plt.grid(axis="x", zorder=1, which="both")
+    fig.savefig("tiempos.png", dpi=100)
+
+
     # Dibujar grafica nodos
     plt.clf()
     fig, ax = plt.subplots(1,1) 
-    y_ticks_labels = []
-    for ind, (nodo, info) in enumerate(nodes.items()):
-        plt.scatter(info, [ind + 1 for _ in info])
-        y_ticks_labels.append(nodo)
+    node_names = sorted(nodes.keys())
+    node_names_inserted = list(nodes.keys())
+    for nodo in node_names:
+        info = nodes[nodo]
+        plt.scatter(info[0], [node_names_inserted.index(nodo) + 1 for _ in info[0]], zorder=2)
 
-    ax.set_yticks(list(range(1, len(y_ticks_labels) + 1)))
-    ax.set_yticklabels(y_ticks_labels, fontsize=10)
-    plt.savefig("nodos.png")
+    ax.xaxis.set_minor_locator(tkr.FixedLocator(list(range(0, args.time * args.nreq, args.time))))
+    ax.xaxis.set_major_locator(tkr.MaxNLocator(10))
+    ax.set_yticks(list(range(1, len(node_names_inserted) + 1)))
+    ax.set_yticklabels(node_names_inserted, fontsize=10)
+    plt.grid(axis="x", zorder=1, which="both")
+    
+    plt.title("Nodo")
+    fig = plt.gcf()
+    fig_width = max(len(times) * 0.5, 14) * cm + 3
+    fig.set_size_inches(fig_width, 6)
+    fig.savefig("nodos.png", dpi=100)
     
     # Dibujar grafica modelo
     plt.clf()
-    plt.title("Modelo usado")
     fig, ax = plt.subplots(1,1) 
     y_ticks_labels = []
-    for ind, (model, info) in enumerate(models.items()):
-        plt.scatter(info, [ind + 1 for _ in info])
+    model_names = sorted(models.keys())
+    for ind, model in enumerate(model_names):
+        info = models[model]
+        plt.scatter(info, [ind + 1 for _ in info], zorder=2)
         y_ticks_labels.append(model)
 
+    ax.xaxis.set_minor_locator(tkr.FixedLocator(list(range(0, args.time * args.nreq, args.time))))
+    ax.xaxis.set_major_locator(tkr.MaxNLocator(10))
     ax.set_yticks(list(range(1, len(y_ticks_labels) + 1)))
     ax.set_yticklabels(y_ticks_labels, fontsize=10)
-    plt.savefig("modelos.png")
+    plt.grid(axis="x", zorder=1, which="both")
+
+    plt.title("Modelo usado")
+    fig = plt.gcf()
+    fig_width = max(len(times) * 0.5, 14) * cm + 3
+    fig.set_size_inches(fig_width, 6)
+    fig.savefig("modelos.png", dpi=100)
 
 def main():
     

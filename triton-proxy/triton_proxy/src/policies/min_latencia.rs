@@ -4,7 +4,7 @@ use triton_proxy_lib::{
     server::{Endpoint, Endpoints}
 };
 use uuid::Uuid;
-use super::{process_locally, Model, SimpleContext};
+use super::{process_locally, read_models, Model, SimpleContext};
 use anyhow::Result;
 
 #[derive(Default)]
@@ -20,6 +20,14 @@ pub struct MinLatencia {
     models: Vec<Model>
 }
 
+impl MinLatencia {
+    pub fn new(path: &str) -> Result<Self> {
+        Ok(Self {
+            models: read_models(path)?,
+        })
+    }
+}
+
 impl Policy<SimpleContext> for MinLatencia {
 
     async fn choose_target(&self, request: &Request<SimpleContext>, endpts: &Endpoints<SimpleContext>) -> Uuid {
@@ -31,23 +39,18 @@ impl Policy<SimpleContext> for MinLatencia {
             .min_by_key(|(_, ep)| calcular_peso(ep))
             .map(|(uuid, _)| *uuid)
             .unwrap();
-
        
        node_uuid
     }
 
     async fn process_locally(&self, request: &Request<SimpleContext>) -> Result<Vec<u8>> {
-        let model = self.choose_model(request);
+        
+        let model = self.models.iter()
+            .max_by_key(|model| model.perf)
+            .unwrap();
+
         process_locally(request, model).await
     }
-}
-
-impl MinLatencia {
-     fn choose_model(&self, _request: &Request<SimpleContext>) -> &Model {
-        self.models.iter()
-            .max_by_key(|model| model.perf)
-            .unwrap()
-     }
 }
 
 /// Devuelve 0 si no se ha usado nunca.
