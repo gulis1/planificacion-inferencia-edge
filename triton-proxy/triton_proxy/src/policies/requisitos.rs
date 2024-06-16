@@ -62,7 +62,7 @@ impl Policy<SimpleContext> for Requisitos {
         
         // Si hay nodos no usados, probar con el más potente.
         let no_probados = nodes.iter().filter(|(_, ep)| ep.last_results.len() == 0);
-        if let Some(ep) = no_probados.min_by_key(|(_, ep)| calcular_hw(ep)) {
+        if let Some(ep) = no_probados.max_by_key(|(_, ep)| calcular_hw(ep)) {
             return *ep.0;
         }
 
