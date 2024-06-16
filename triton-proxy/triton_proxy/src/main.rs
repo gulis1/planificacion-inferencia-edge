@@ -5,7 +5,7 @@ use std::env;
 use kube::{Client, Config};
 use log::{error, info};
 use anyhow::{anyhow, Context, Result};
-use policies::{MinLatencia, SimpleContext};
+use policies::{Requisitos, SimpleContext};
 use triton_proxy_lib::metrics::Metric;
 use uuid::Uuid;
 
@@ -34,12 +34,11 @@ async fn main() -> Result<()> {
     };
 
     let (pod_namespace, pod_name, pod_uuid) = get_env_vars()?;
-    //let policy = Requisitos::new(CSV_MODELOS)?;
-    let policy = MinLatencia::new(CSV_MODELOS)?;
+    let policy = Requisitos::new(CSV_MODELOS)?;
     let metrics = get_target_metrics();
     match client {
         Ok(client) => {
-            triton_proxy_lib::main_task::<MinLatencia, SimpleContext>(
+            triton_proxy_lib::main_task::<Requisitos, SimpleContext>(
                 client,
                 pod_namespace,
                 pod_name,

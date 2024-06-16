@@ -151,8 +151,7 @@ def parse_result(c: str, pods) -> InferenceResult:
 def pruebas(args):
 
     pods = None
-    with open("pods.json") as file:
-        pods = json.load(file)
+
     
     results = []
     if args.load:
@@ -166,6 +165,9 @@ def pruebas(args):
                 results.append(res)
 
     else:
+        with open("pods.json") as file:
+            pods = json.load(file)
+
         output_vec = [None for _ in range(args.nreq)]
         threads = []
         for i in range(args.nreq):
