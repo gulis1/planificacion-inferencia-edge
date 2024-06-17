@@ -34,6 +34,7 @@ pub fn est_tiempo_para_acc(ep: &TritonEndpoint, acc: u32) -> Option<u32> {
     ep.last_results
         .iter()
         .filter(|r| r.duration.is_some())
+        .rev()
         .min_by_key(|res| res.context.accuracy.abs_diff(acc))
         .map(|r| r.duration.unwrap().as_millis() as u32)
     
@@ -62,19 +63,27 @@ impl Policy<SimpleContext> for Requisitos {
         
         // Si hay nodos no usados, probar con el más potente.
         let no_probados = nodes.iter().filter(|(_, ep)| ep.last_results.len() == 0);
-        if let Some(ep) = no_probados.max_by_key(|(_, ep)| calcular_hw(ep)) {
+        if let Some(ep) = no_probados.min_by_key(|(_, ep)| calcular_hw(ep)) {
             return *ep.0;
         }
 
-        // 
-        let antiguo = nodes.iter()
-            .filter(|(_, ep)| {
-                let last_ind = ep.last_results.len() - 1;
-                let ultimo_envio = ep.last_results[last_ind].instant;
-                // Miramos que no se haya enviado desde hace 30? segundos.
-                ultimo_envio.elapsed() >= Duration::from_secs(30)
-            })
-            .min_by_key(|(_, ep)| cola_estimada_ms(ep));
+        let no_completo = nodes.iter()
+            .filter(|(_, ep)| ep.last_results.len() < 3)
+            .max_by_key(|(_, ep)| calcular_hw(ep));
+
+        if let Some(ep) = no_completo {
+            return *ep.0;
+        }
+
+
+        //let antiguo = nodes.iter()
+        //    .filter(|(_, ep)| {
+        //        let last_ind = ep.last_results.len() - 1;
+        //        let ultimo_envio = ep.last_results[last_ind].instant;
+        //        // Miramos que no se haya enviado desde hace 30? segundos.
+        //        ultimo_envio.elapsed() >= Duration::from_secs(30)
+        //    })
+        //    .min_by_key(|(_, ep)| cola_estimada_ms(ep));
 
         // Como última opción, se envia al que menos tiempo de respuesta ha dado anteriormente.
         *nodes.iter().min_by_key(|(_, ep)| promedio_latencia(ep)).unwrap().0
