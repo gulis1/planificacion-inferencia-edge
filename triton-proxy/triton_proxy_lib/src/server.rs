@@ -3,10 +3,7 @@ use ringbuffer::{AllocRingBuffer, RingBuffer};
 use uuid::Uuid;use serde_json::Value as JsonValue;
 use anyhow::{Context, Result};
 use std::{
-    collections::{BTreeMap, HashMap},
-    marker::PhantomData, net::SocketAddr,
-    str::FromStr, sync::Arc, 
-    time::{Duration, Instant}
+    collections::BTreeMap, env, net::SocketAddr, str::FromStr, sync::Arc, time::{Duration, Instant}
 };
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter},
@@ -29,16 +26,17 @@ const QUERY_MAX_ELLAPSED: Duration = Duration::from_secs(10);
 /// simultáneas.
 const MAX_CONCURRENT_METRICS_QUERY: usize = 2;
 
+
 pub type Endpoints<R> = BTreeMap<Uuid, Endpoint<R>>;
 
 #[derive(Debug, Clone)]
 pub struct PreviousResult<R: RequestContext> {
     pub duration: Option<Duration>,
-    pub instant: Instant ,
+    pub instant: Instant,
     pub context: R
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Endpoint<R: RequestContext> {
     pub name: Arc<str>,
     pub ip: Arc<str>,
@@ -51,6 +49,7 @@ pub struct Endpoint<R: RequestContext> {
     /// - Ok(Duration) if the last request as succesfull and took Duration
     /// - Err(Instant) if the last request didnt complete. Stores the instant the request was made.
     pub last_results: AllocRingBuffer <PreviousResult<R>>
+
 }
 
 pub(crate) struct ProxyServer<T, R> 
@@ -62,7 +61,7 @@ where T: Policy<R>,
     query_sem: Semaphore,
     sender: MsgSender<'static>,
     policy: T,
-    phantom: PhantomData<R>
+    request_timeout: Duration
 }
 
 impl<T, R> ProxyServer<T, R> 
@@ -76,6 +75,12 @@ where T: Policy<R> + 'static,
         policy: T
     ) -> Result<Arc<Self>> {
     
+        let timeout_ms: u64 = env::var("EDGE_PROXY_REQUEST_TIMEOUT_MS")
+            .ok()
+            .and_then(|x| x.parse().ok())
+            .unwrap_or(5000u64);
+
+        log::info!("Timeout found: {timeout_ms} ms");
 
         let server = Arc::new(Self {
             self_uuid,
@@ -83,7 +88,7 @@ where T: Policy<R> + 'static,
             query_sem: Semaphore::new(MAX_CONCURRENT_METRICS_QUERY),
             sender,
             policy,
-            phantom: PhantomData
+            request_timeout: Duration::from_millis(timeout_ms)
         });
         
         server.run(listen_address).await?;
@@ -141,7 +146,7 @@ where T: Policy<R> + 'static,
             }
         });
         
-        let server = Arc::clone(&self);
+        let server = Arc::clone(self);
         // Tarea para ir pidiendo metricas actualizadasde los vecinos.
         tokio::spawn(async move {
              
@@ -193,7 +198,7 @@ where T: Policy<R> + 'static,
 
             request.jumps += 1;
             request.previous_nodes.push(self.self_uuid);
-            timeout(Duration::from_secs(10), proxy(&mut client_conn, addr, &request))
+            timeout(self.request_timeout, proxy(&mut client_conn, addr, &request))
                 .await
                 .ok()
         }
