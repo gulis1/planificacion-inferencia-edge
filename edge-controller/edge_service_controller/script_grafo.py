@@ -6,7 +6,7 @@ import json
 
 def get_pods(namespace):
 
-    service_uuid = subprocess.check_output(f"sudo kubectl --namespace={namespace} describe tservice | grep UID", shell=True).decode("utf8").split()[1]
+    service_uuid = subprocess.check_output(f"sudo kubectl --namespace={namespace} describe edgeservice | grep UID", shell=True).decode("utf8").split()[1]
     output = subprocess.check_output([
         "sudo",
         "kubectl",

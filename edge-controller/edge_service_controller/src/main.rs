@@ -4,7 +4,7 @@ use kube::{Config, Client};
 use log::{info, error};
 use anyhow::{anyhow, Result};
 
-type POLICY = policies::NoOp;
+type POLICY = policies::FromFile;
 
 #[tokio::main]
 async fn main() -> Result<()> {

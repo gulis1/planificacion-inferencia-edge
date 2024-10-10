@@ -20,9 +20,9 @@ use crate::{
     watcher::AnnotationsWatcher
 };
 
-const METRICS_ANNOT: &str = "tritonservices.prueba.ucm.es/triton_metrics";
-const HW_ANNOT: &str =      "tritonservices.prueba.ucm.es/hw_info";
-const ENDPS_ANNOT: &str =   "tritonservices.prueba.ucm.es/endpoints";
+const METRICS_ANNOT: &str = "edgeservices.prueba.ucm.es/triton_metrics";
+const HW_ANNOT: &str =      "edgeservices.prueba.ucm.es/hw_info";
+const ENDPS_ANNOT: &str =   "edgeservices.prueba.ucm.es/endpoints";
 
 type MsgSender<'a> = mpsc::Sender<Message<'a>>;
 #[derive(Debug)]
