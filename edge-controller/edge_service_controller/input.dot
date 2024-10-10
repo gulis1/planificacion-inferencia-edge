@@ -1,0 +1,5 @@
+digraph G {
+  jorinnano -> alpinevm1
+  jorinnano -> alpinevm2
+  jorinnano -> artecslab003
+}

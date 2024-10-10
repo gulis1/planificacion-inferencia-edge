@@ -1,0 +1,4 @@
+{
+    "service_uuid": "33545bcb-2eaa-4ae3-9ebc-03b27936a06a",
+    "graph": "digraph G {\n  \"1ab415ab-ea24-413b-9abd-b2bd06d586e4\" -> \"4df7076a-32e9-4cc3-923e-93cea5763536\"\n  \"1ab415ab-ea24-413b-9abd-b2bd06d586e4\" -> \"59ac5a2d-b980-43d0-bdf3-f35edb4ea929\"\n  \"1ab415ab-ea24-413b-9abd-b2bd06d586e4\" -> \"e50de4bf-c6f1-4a9a-8db6-82d4b3c37384\"\n}\n"
+}

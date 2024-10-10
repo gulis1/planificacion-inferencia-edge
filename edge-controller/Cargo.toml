@@ -1,0 +1,8 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "edge_service_controller",
+    "edge_service_lib",
+]
+

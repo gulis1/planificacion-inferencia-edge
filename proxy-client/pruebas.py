@@ -96,7 +96,6 @@ def launch_client(args, thread_id: int, output_vec: list[str]):
         "-a",
         str(accuracy)
     ]).decode("utf8")
-
     output += "\nPrioridad: " + str(prioridad)
     output += "\nAccuracy: " + str(accuracy)
     print(f"Thread {thread_id} finished") 

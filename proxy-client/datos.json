@@ -1,96 +1,96 @@
 {
-    "time": 200,
+    "time": 1000,
     "nreq": 10,
     "results": [
         {
-            "total_ms": 365.35,
-            "model": "resnet",
-            "route": "artecslab003",
+            "total_ms": 30.91,
+            "model": "resnet_a30_int8",
+            "route": "marbore",
             "prioridad": 10000,
             "accuracy": 60,
-            "t_inferencia": 362.73,
-            "t_pprocesado": 1.31
+            "t_inferencia": 23.13,
+            "t_pprocesado": 3.6
         },
         {
-            "total_ms": 454.86,
+            "total_ms": 1024.92,
             "model": "resnet",
-            "route": "artecslab003",
+            "route": "alpinevm2",
             "prioridad": 10000,
             "accuracy": 60,
-            "t_inferencia": 448.57,
-            "t_pprocesado": 1.1
+            "t_inferencia": 1020.52,
+            "t_pprocesado": 1.78
         },
         {
-            "total_ms": 443.28,
+            "total_ms": 985.31,
             "model": "resnet",
-            "route": "artecslab003",
+            "route": "alpinevm2",
             "prioridad": 10000,
             "accuracy": 60,
-            "t_inferencia": 432.21,
-            "t_pprocesado": 1.57
+            "t_inferencia": 982.8,
+            "t_pprocesado": 1.04
         },
         {
-            "total_ms": 673.71,
+            "total_ms": 1022.87,
+            "model": "resnet",
+            "route": "alpinevm1",
+            "prioridad": 10000,
+            "accuracy": 60,
+            "t_inferencia": 1007.72,
+            "t_pprocesado": 3.02
+        },
+        {
+            "total_ms": 278.77,
             "model": "resnet",
             "route": "artecslab003",
             "prioridad": 10000,
             "accuracy": 60,
-            "t_inferencia": 671.6,
+            "t_inferencia": 276.62,
+            "t_pprocesado": 1.21
+        },
+        {
+            "total_ms": 14.15,
+            "model": "resnet_a30_int8",
+            "route": "ocejon",
+            "prioridad": 10000,
+            "accuracy": 60,
+            "t_inferencia": 10.89,
+            "t_pprocesado": 1.41
+        },
+        {
+            "total_ms": 308.71,
+            "model": "resnet",
+            "route": "artecslab003",
+            "prioridad": 10000,
+            "accuracy": 60,
+            "t_inferencia": 306.85,
             "t_pprocesado": 1.23
         },
         {
-            "total_ms": 723.81,
+            "total_ms": 1003.46,
             "model": "resnet",
-            "route": "artecslab003",
+            "route": "alpinevm1",
             "prioridad": 10000,
             "accuracy": 60,
-            "t_inferencia": 713.91,
-            "t_pprocesado": 1.58
+            "t_inferencia": 1025.87,
+            "t_pprocesado": 2.02
         },
         {
-            "total_ms": 1017.19,
+            "total_ms": 968.22,
             "model": "resnet",
-            "route": "artecslab003",
+            "route": "alpinevm2",
             "prioridad": 10000,
             "accuracy": 60,
-            "t_inferencia": 1005.39,
-            "t_pprocesado": 1.09
+            "t_inferencia": 965.95,
+            "t_pprocesado": 0.94
         },
         {
-            "total_ms": 951.24,
+            "total_ms": 278.45,
             "model": "resnet",
             "route": "artecslab003",
             "prioridad": 10000,
             "accuracy": 60,
-            "t_inferencia": 944.34,
-            "t_pprocesado": 1.59
-        },
-        {
-            "total_ms": 1167.85,
-            "model": "resnet",
-            "route": "artecslab003",
-            "prioridad": 10000,
-            "accuracy": 60,
-            "t_inferencia": 1165.74,
-            "t_pprocesado": 1.33
-        },
-        {
-            "total_ms": 1090.06,
-            "model": "resnet",
-            "route": "artecslab003",
-            "prioridad": 10000,
-            "accuracy": 60,
-            "t_inferencia": 1085.96,
-            "t_pprocesado": 1.65
-        },
-        {
-            "total_ms": 1317.71,
-            "model": "resnet",
-            "route": "artecslab003",
-            "prioridad": 10000,
-            "accuracy": 60,
-            "t_inferencia": 1307.3,
-            "t_pprocesado": 1.15
+            "t_inferencia": 276.53,
+            "t_pprocesado": 1.19
         }
     ]
 }

@@ -1,8 +1,0 @@
-[workspace]
-resolver = "2"
-
-members = [ 
-    "triton_proxy",
-    "triton_proxy_lib",
-]
-

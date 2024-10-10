@@ -1,0 +1,6 @@
+Para usar IPVS en la jetson nano:
+
+  1. apt install ipset ipvsadm
+
+  2. Compilar y cargar los modulos que están en /net/netfilter/ipvs,
+  /net/netfilter/ipset y /net/netfilter

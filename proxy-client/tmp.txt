@@ -1,0 +1,8 @@
+{
+               "30ee1ec5-5ab7-4737-b053-bd79e625841b" : "jorinnano",
+               "595bd9e5-d30c-45f0-9cac-47283f76370c" : "alpinevm1",
+   "6f49acb6-edc0-4eec-8de2-8ddc895d0684" : "marbore",
+               "8c5947d0-6d2c-4c17-adf2-b91f95982348" : "artecslab003",
+               "bf826e3f-1f71-477f-af2f-a77802e49c6d" : "alpinevm2",
+               "c31ed480-3550-4fb8-b4e7-d7fe0dea16a1" : "orin2"
+}

@@ -1,0 +1,8 @@
+apiVersion: "prueba.ucm.es/v1"
+kind: EdgeService
+metadata:
+  name: tritonservice-prueba
+  finalizers:
+    - "edgeservices.prueba.ucm.es/deletion"
+spec:
+  selector: hola
