@@ -2,7 +2,7 @@ use std::path::Path;
 
 use petgraph::{graphmap::DiGraphMap, visit::{EdgeRef, IntoEdges}, Direction};
 use tokio::fs;
-use tservice_lib::policy::{AsyncDefault, GraphWrapper, PodMap, Policy};
+use edge_service_lib::policy::{AsyncDefault, GraphWrapper, PodMap, Policy};
 use uuid::Uuid;
 use anyhow::{Context, Result};
 use serde_json::Value as JsonValue;

@@ -1,4 +1,4 @@
-use tservice_lib::policy::*;
+use edge_service_lib::policy::*;
 use uuid::Uuid;
 
 #[derive(Debug, Default)]

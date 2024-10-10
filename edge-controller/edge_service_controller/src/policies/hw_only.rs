@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use kube::ResourceExt;
-use tservice_lib::policy::*;
+use edge_service_lib::policy::*;
 use serde_json::{json, Value as JsonValue};
 use uuid::Uuid;
 
