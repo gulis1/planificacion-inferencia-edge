@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as tkr
 import numpy as np
 import pickle
+from datetime import datetime
+import sys
 
 def argument_parser() -> ArgumentParser:
 
@@ -56,6 +58,14 @@ def argument_parser() -> ArgumentParser:
         type=str,
         required=False,
         help="Generate pod JSON for the given namespace",
+    )
+
+    parser.add_argument(
+        "-w",
+        "--wait",
+        type=str,
+        required=False,
+        help="Wait until given time to run the experiment (Format: 2024-9-25-16:11:01)",
     )
 
     return parser
@@ -150,7 +160,6 @@ def parse_result(c: str, pods) -> InferenceResult:
 def pruebas(args):
 
     pods = None
-
     
     results = []
     if args.load:
@@ -169,6 +178,12 @@ def pruebas(args):
 
         output_vec = [None for _ in range(args.nreq)]
         threads = []
+        if args.wait:
+            now = datetime.now()
+            target = datetime.strptime(args.wait, "%Y-%m-%d-%H:%M:%S")
+            delay = (target - now).total_seconds()
+            sleep(delay)
+
         for i in range(args.nreq):
             t = Thread(target = lambda: launch_client(args, i, output_vec))
             t.start()
@@ -177,7 +192,6 @@ def pruebas(args):
         
         for t in threads:
             t.join()
-        
         
         results = [parse_result(o, pods) for o in output_vec]
         with open("datos.json", "w") as file:
