@@ -1,7 +1,7 @@
 mod policies;
 mod utils;
 
-use std::env;
+use std::{env, process::Command};
 use kube::{Client, Config};
 use log::{error, info};
 use anyhow::{anyhow, Context, Result};
@@ -33,6 +33,11 @@ async fn main() -> Result<()> {
         }
     };
 
+    if let Err(e) = start_triton_client() {
+        error!("Failed to start Python triton client: {e}");
+        return Err(e);
+    }
+
     let (pod_namespace, pod_name, pod_uuid) = get_env_vars()?;
     let policy = Random::new(CSV_MODELOS)?;
     let metrics = get_target_metrics();
@@ -52,6 +57,19 @@ async fn main() -> Result<()> {
             Err(anyhow!("Failed to start Kubernetes client"))
         }
     }
+}
+
+fn start_triton_client() -> anyhow::Result<()> {
+
+    // Arrancar el cliente triton a la esperea de peticiones.
+    Command::new("python3")
+        .arg("-u")
+        .arg("./cliente.py")
+        .arg("-u")
+        .arg("127.0.0.1:8000") //TODO: cuidado con esto!!
+        .spawn()?;
+
+    Ok(())
 }
 
 fn get_target_metrics() -> Vec<Metric> {

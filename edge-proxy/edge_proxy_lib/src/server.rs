@@ -164,13 +164,6 @@ where T: Policy<R> + 'static,
             }
         });
         
-        // Arrancar el cliente triton a la esperea de peticiones.
-        Command::new("python3")
-            .arg("-u")
-            .arg("./cliente.py")
-            .arg("-u")
-            .arg("127.0.0.1:8000") //TODO: cuidado con esto!!
-            .spawn()?;
 
         Ok(())
     }

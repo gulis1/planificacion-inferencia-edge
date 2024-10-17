@@ -31,7 +31,11 @@ impl<R: RequestContext> Policy<R> for Random {
     }
 
     async fn process_locally(&self, request: &Request<R>) -> Result<Vec<u8>> {
-        let model = &self.models[random::<usize>() % self.models.len()];
+
+        let model = self.models.iter()
+            .min_by_key(|model| model.perf)
+            .unwrap();
+
         process_locally(request, model).await
     }
 }
