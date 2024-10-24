@@ -9,6 +9,7 @@ import numpy as np
 import pickle
 from datetime import datetime
 import sys
+import numpy as np
 
 def argument_parser() -> ArgumentParser:
 
@@ -292,6 +293,28 @@ def pruebas(args):
     fig_width = max(len(times) * 0.5, 14) * cm + 3
     fig.set_size_inches(fig_width, 6)
     fig.savefig("modelos.png", dpi=100)
+
+    plt.clf()
+    plt.hist(times)
+    plt.title("Tiempos de respuesta")
+    plt.savefig("histograma.png")
+
+    plt.clf()
+    fig, ax = plt.subplots(figsize=(12, 8))
+    x = np.arange(len(nodes))
+    #X = list(nodes)
+    Y = [len(nodes[node][0]) for node in nodes]
+    plt.bar(x, Y, label="Num. peticiones resultas", width=0.3)
+    Y2 = [sum(nodes[node][1]) / len(nodes[node][1]) for node in nodes]
+    ax.set_ylabel("Número de peticiones", color="tab:blue")
+    ax2 = ax.twinx()
+    ax2.set_ylabel("Tiempo medio de respuesta (ms)", color="tab:red")
+    plt.bar(x + 0.3, Y2, label="Media tiempo de respuesta", width=0.3, color="tab:red")
+    plt.title("IPtables: random")
+    ax.set_xticks(x + 0.3 / 2)
+    ax.set_xticklabels(list(nodes))
+    plt.savefig("barras_nodos.png")
+
 
 def main():
     
