@@ -5,7 +5,7 @@ use std::{env, process::Command};
 use kube::{Client, Config};
 use log::{error, info};
 use anyhow::{anyhow, Context, Result};
-use policies::{Random, SimpleContext};
+use policies::{MinLatencia, SimpleContext};
 use edge_proxy_lib::metrics::Metric;
 use uuid::Uuid;
 
@@ -39,11 +39,11 @@ async fn main() -> Result<()> {
     }
 
     let (pod_namespace, pod_name, pod_uuid) = get_env_vars()?;
-    let policy = Random::new(CSV_MODELOS)?;
+    let policy = MinLatencia::new(CSV_MODELOS)?;
     let metrics = get_target_metrics();
     match client {
         Ok(client) => {
-            edge_proxy_lib::main_task::<Random, SimpleContext>(
+            edge_proxy_lib::main_task::<MinLatencia, SimpleContext>(
                 client,
                 pod_namespace,
                 pod_name,

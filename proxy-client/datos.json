@@ -12,7 +12,7 @@
             "t_pprocesado": 8.63
         },
         {
-            "total_ms": 3551.34,
+            "total_ms": 1151.34,
             "model": "resnet",
             "route": "alpinevm2",
             "prioridad": 10000,
@@ -21,7 +21,7 @@
             "t_pprocesado": 0.73
         },
         {
-            "total_ms": 2883.29,
+            "total_ms": 1221.29,
             "model": "resnet",
             "route": "alpinevm1",
             "prioridad": 10000,
