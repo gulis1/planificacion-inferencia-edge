@@ -5,7 +5,7 @@ use edge_proxy_lib::{
 };
 use uuid::Uuid;
 use super::{process_locally, read_models, Model, SimpleContext};
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 #[derive(Default)]
 /// Reglas:
@@ -45,9 +45,20 @@ impl Policy<SimpleContext> for MinLatencia {
 
     async fn process_locally(&self, request: &Request<SimpleContext>) -> Result<Vec<u8>> {
         
-        let model = self.models.iter()
-            .min_by_key(|model| model.perf)
-            .unwrap();
+        let model = match request.context.model {
+            Some(ref model_name) => {
+
+                self.models.iter()
+                    .find(|m| &m.name == model_name)
+                    .with_context(|| format!("Invalid model name: {model_name}"))?
+            },
+            None => {
+
+                self.models.iter()
+                    .min_by_key(|model| model.perf)
+                    .unwrap()
+            }
+        };
 
         process_locally(request, model).await
     }

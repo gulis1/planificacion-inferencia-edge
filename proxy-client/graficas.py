@@ -1,3 +1,4 @@
+from cycler import cycler
 from pruebas import InferenceResult
 import matplotlib.pyplot as plt
 import matplotlib.ticker as tkr
@@ -92,11 +93,6 @@ def dibujar_graficas(nodes, times, models, time, nreq):
     fig.savefig("modelos.png", dpi=100)
 
     plt.clf()
-    plt.hist(times)
-    plt.title("Tiempos de respuesta")
-    plt.savefig("histograma.png")
-
-    plt.clf()
     fig, ax = plt.subplots(figsize=(12, 8))
     x = np.arange(len(nodes))
     #X = list(nodes)
@@ -116,15 +112,20 @@ if __name__ == "__main__":
 
     fig, ax = plt.subplots(1,1) 
     nodes = dict()
+    algoritmos = dict()
+    
+    linestyle_cycler = (cycler(linestyle=['-','--',':','-.']))
+    ax.set_prop_cycle(linestyle_cycler)
+    plt.yscale("log")
     for arg in sys.argv[1:]:
 
         time, nreq, results = parse_json(arg)
-        nreq = 100
-        results = results[:100]
-        time = 500
-
+        nreq = 18
+        results = results[:18]
+        time = 1000
         times = []
         models = dict()
+        algoritmo = arg.split("/")[-1].replace(".json", "")
         for thread_id, res in enumerate(results):
 
             if res.route is None:
@@ -137,8 +138,9 @@ if __name__ == "__main__":
                 try:
                     nodes[node][0].append(thread_id * time)
                     nodes[node][1].append(res.total_ms)
+                    nodes[node][2].append(algoritmo)
                 except KeyError:
-                    nodes[node] = ([thread_id * time], [res.total_ms])
+                    nodes[node] = ([thread_id * time], [res.total_ms], [])
 
                 try:
                     models[res.model].append(thread_id * time)
@@ -146,39 +148,49 @@ if __name__ == "__main__":
                     models[res.model] = [thread_id * time]
 
 
-        print(times[:10])
         rango = range(0, nreq * time, time)
-        plt.plot(rango, times, zorder=1)
+        line = ax.plot(rango, times, zorder=1, linewidth=1, color="gray")
+        
+        algoritmos[algoritmo] = times
+
+    print(algoritmos)
 
     # Dibujar grafica tiempo
+    ax.set_prop_cycle(None)
+    #ax.set_prop_cycle(cycler("color", ["r", "g", "b"]))
     node_names = sorted(nodes.keys())
     for nodo in node_names:
+    
         info = nodes[nodo]
-        plt.scatter(info[0], info[1], label=nodo, zorder=2)
+        ax.scatter(info[0], info[1], label=nodo, zorder=2, s=30)
         
     cm = 1/2.54
 
     plt.title("Tiempo de respuesta")
     plt.xlabel("Tiempo (ms)")
     plt.ylabel("Latencia (ms)")
-        
-    plt.legend(loc="upper left")
-    plt.legend(["IPVS: rr", "IPtables"], loc="upper right")
+    
+    legend1 = plt.legend(list(algoritmos.keys())+ node_names, loc="upper right", title="Nodos")
+    ax.add_artist(legend1)
+    
+    #    legend2 = ax.legend(algoritmos.keys(), loc="upper right", title="Algoritmos")
+    #ax.add_artist(legend2)
+
     fig = plt.gcf()
     fig_width = max(len(times) * 0.5, 14) * cm + 3
     fig.set_size_inches(fig_width, 6)
     ax.xaxis.set_minor_locator(tkr.FixedLocator(list(range(0, time * nreq, time))))
     ax.xaxis.set_major_locator(tkr.MaxNLocator(10))
-    plt.grid(axis="x", zorder=1, which="both")
+    #plt.grid(axis="x", zorder=1, which="both")
     fig.savefig("tiempos.png", dpi=100)
     
-
-    
+    print(algoritmos)
+    print(algoritmos.keys())
     plt.clf()
     plt.xlabel("Algoritmo")
     plt.ylabel("Tiempo respuesta promedio")
-    plt.bar(["IPtables", "IPVS: rr", "IPVS: lc", "Inventado"], [410, 420, 200, 70])
-    plt.errorbar(["IPtables", "IPVS: rr", "IPVS: lc", "Inventado"], [410, 420, 200, 70], [320, 300, 80, 10], linestyle="None", color="black", capsize=5)
+    plt.bar(algoritmos.keys(), [sum(tiempo) / len(tiempo) for tiempo in algoritmos.values()])
+    plt.errorbar(algoritmos.keys(), [sum(tiempo) / len(tiempo) for tiempo in algoritmos.values()], [np.std(tiempo) for tiempo in algoritmos.values()], linestyle="None", color="black", capsize=5)
     plt.savefig("prueba.png")
         
-        #dibujar_graficas(nodes, times, models, time, nreq)
+    #dibujar_graficas(nodes, times, models, time, nreq)

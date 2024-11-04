@@ -29,6 +29,7 @@ use edge_proxy_lib::{
 pub struct SimpleContext {
     pub priority: u32,
     pub accuracy: u32,
+    pub model: Option<String>
 }
 
 type TritonRequest = Request<SimpleContext>;
@@ -38,15 +39,34 @@ type TritonEndpoints = Endpoints<SimpleContext>;
 impl RequestContext for SimpleContext {
     async fn receive(reader: &mut Receiver<'_>) -> Result<Self, std::io::Error> {
         
+        let priority = reader.r.read_u32().await?;
+        let accuracy = reader.r.read_u32().await?;
+        let model_length = reader.r.read_u32().await?;
+        let model = if model_length == 0 { None }
+            else { 
+                let mut buff: Vec<u8> = vec![0_u8; model_length as usize];
+                reader.r.read_exact(&mut buff);
+                Some(String::from_utf8(buff).unwrap())
+            };
+
         Ok(Self {
-            priority: reader.r.read_u32().await?,
-            accuracy: reader.r.read_u32().await?
+            priority,
+            accuracy,
+            model
         })
     }
 
     async fn send(sender: &mut Sender<'_>, req: &Self) -> Result<(), std::io::Error> {
         sender.s.write_u32(req.priority).await?;
         sender.s.write_u32(req.accuracy).await?;
+        match req.model {
+            Some(ref model) => {
+                sender.s.write_u32(model.len() as u32).await?;
+                sender.s.write_all(model.as_bytes()).await?;
+            },
+            None => sender.s.write_u32(0).await?
+        }
+
         Ok(())
     }
 }
