@@ -45,20 +45,18 @@ impl Policy<SimpleContext> for MinLatencia {
 
     async fn process_locally(&self, request: &Request<SimpleContext>) -> Result<Vec<u8>> {
         
-        let model = match request.context.model {
-            Some(ref model_name) => {
-
+        let model = request.context.model
+            .as_ref()
+            .and_then(|model_name| {
                 self.models.iter()
                     .find(|m| m.name.contains(model_name))
-                    .with_context(|| format!("Invalid model name: {model_name}"))?
-            },
-            None => {
-
+            })
+            .unwrap_or_else(|| {
+                log::error!("Failed to find model that contains the pattern.");
                 self.models.iter()
                     .min_by_key(|model| model.perf)
                     .unwrap()
-            }
-        };
+            });
 
         process_locally(request, model).await
     }

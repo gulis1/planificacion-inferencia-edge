@@ -153,6 +153,8 @@ def main():
         sock.send(struct.pack(">I", 0))
         sock.send(struct.pack(">I", args.priority))
         sock.send(struct.pack(">I", args.accuracy))
+        sock.send(struct.pack(">I", 4))
+        sock.sendall("fp16".encode("utf-8"))
         sock.send(struct.pack(">Q", len(img)))
         sock.send(img)
         
