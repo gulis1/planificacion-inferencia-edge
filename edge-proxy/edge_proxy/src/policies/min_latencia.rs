@@ -49,7 +49,7 @@ impl Policy<SimpleContext> for MinLatencia {
             Some(ref model_name) => {
 
                 self.models.iter()
-                    .find(|m| &m.name == model_name)
+                    .find(|m| m.name.contains(model_name))
                     .with_context(|| format!("Invalid model name: {model_name}"))?
             },
             None => {

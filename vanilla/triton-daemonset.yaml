@@ -34,7 +34,7 @@ spec:
               hostPort: 9090
               protocol: TCP
 
-        - image: gulis1/edge_proxy_triton:0.1.2-random
+        - image: gulis1/edge_proxy_triton:1.0.2-minlatencia
           name: triton-proxy
           ports:
             - containerPort: 9999

@@ -42,12 +42,19 @@ impl RequestContext for SimpleContext {
         let priority = reader.r.read_u32().await?;
         let accuracy = reader.r.read_u32().await?;
         let model_length = reader.r.read_u32().await?;
+        log::warn!("Model length: {model_length}");
         let model = if model_length == 0 { None }
-            else { 
-                let mut buff: Vec<u8> = vec![0_u8; model_length as usize];
-                reader.r.read_exact(&mut buff);
-                Some(String::from_utf8(buff).unwrap())
-            };
+        else { 
+            log::warn!("Punto 1");
+            let mut buff: Vec<u8> = vec![0_u8; model_length as usize];
+            log::warn!("Punto 2");
+            reader.r.read_exact(&mut buff);
+            log::warn!("Punto 3");
+            let model_name = String::from_utf8(buff).unwrap();
+            log::warn!("Requested model name: {model_name}");
+            log::warn!("Punto 4");
+            Some(model_name)
+        };
 
         Ok(Self {
             priority,
