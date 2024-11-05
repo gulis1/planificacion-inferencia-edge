@@ -48,7 +48,7 @@ impl RequestContext for SimpleContext {
             log::warn!("Punto 1");
             let mut buff: Vec<u8> = vec![0_u8; model_length as usize];
             log::warn!("Punto 2");
-            reader.r.read_exact(buff.as_mut_slice());
+            reader.r.read_exact(buff.as_mut_slice()).await;
             log::warn!("Punto 3: {:#?}", buff);
             let model_name = String::from_utf8(buff).unwrap();
             log::warn!("Requested model name: {model_name}");
