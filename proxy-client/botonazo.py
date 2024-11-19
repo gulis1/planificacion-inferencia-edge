@@ -13,7 +13,8 @@ target = datetime.strptime(sys.argv[1], "%Y-%m-%d-%H:%M:%S")
 delay = (target - now).total_seconds()
 sleep(delay)
 
-output = subprocess.check_output(sys.argv[2:], stderr=subprocess.STDOUT).decode("utf-8")
+output = subprocess.check_output(sys.argv[2:], stderr=subprocess.STDOUT, shell=True).decode("utf-8")
+
 print(output, end="")
 
 

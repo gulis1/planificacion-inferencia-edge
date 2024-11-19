@@ -7,6 +7,7 @@ import numpy as np
 from PIL import Image
 from time import time_ns
 import subprocess
+from random import random
 
 NAMESPACE = "kube-triton"
 
@@ -142,40 +143,43 @@ def main():
 
     uuid = uuid4()
     print("Request id:", uuid)
+    
+    response = bytes()
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-
-        sock.connect((host, port))
-        file = open(args.image, "rb")
-        img = file.read()
-        file.close()
-
-        sock.send(uuid.bytes)
-        sock.send(struct.pack(">I", 0))
-        sock.send(struct.pack(">I", args.priority))
-        sock.send(struct.pack(">I", args.accuracy))
-        sock.send(struct.pack(">I", 4))
-        sock.sendall("fp16".encode("utf-8"))
-        sock.send(struct.pack(">Q", len(img)))
-        sock.send(img)
-        
-        response = bytes()
-        t1 = time_ns()
-        while True:
-            received = sock.recv(1024)
-            if len(received) == 0:
-                break
-            response += received
-
-        t2 = time_ns()
         try:
-            #x = pickle.loads(response)
-            #print(x.shape)
+            sock.settimeout(20)
+            sock.connect((host, port))
+            file = open(args.image, "rb")
+            img = file.read()
+            file.close()
+
+            sock.send(uuid.bytes)
+            sock.send(struct.pack(">I", 0))
+            sock.send(struct.pack(">I", args.priority))
+            sock.send(struct.pack(">I", args.accuracy))
+            sock.send(struct.pack(">I", 4))
+            if random() >= 0.5:
+                sock.sendall("tf32".encode("utf-8"))
+            else:
+                sock.sendall("int8".encode("utf-8"))
+            sock.send(struct.pack(">Q", len(img)))
+            sock.send(img)
+            
+            t1 = time_ns()
+            while True:
+                received = sock.recv(1024)
+                if len(received) == 0:
+                    break
+                response += received
+
+            t2 = time_ns()
             print(response.decode("utf-8"))
-        except Exception as e:
+        except TimeoutError as e:
+            t2 = None
             print("Error cliente:", e)
-        print(f"Took: {(t2 - t1) / 1_000_000} ms")
-        #ruta = buscar_ruta(uuid)
-        #print("Ruta:", " -> ".join(ruta))
+        
+        if t2 is not None:
+            print(f"Took: {(t2 - t1) / 1_000_000} ms")
 
 if __name__ == "__main__":
     main()
