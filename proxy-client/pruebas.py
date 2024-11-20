@@ -8,6 +8,7 @@ import pickle
 from datetime import datetime
 import sys
 import numpy as np
+import random
 
 def argument_parser() -> ArgumentParser:
 
@@ -92,8 +93,8 @@ def launch_client(args, thread_id: int, output_vec: list[str]):
     
     prioridad = 10000
     accuracy = 60 
-
-    output = subprocess.check_output([
+    
+    launch_args = [
         "python3",
         "client.py",
         "-u",
@@ -104,7 +105,14 @@ def launch_client(args, thread_id: int, output_vec: list[str]):
         str(prioridad),
         "-a",
         str(accuracy)
-    ]).decode("utf8")
+    ]
+    
+    if random.random() > 0.5:
+        launch_args.extend(["-q", "int8"])
+    else:
+        launch_args.extend(["-q", "tf32"])
+    output = subprocess.check_output(launch_args).decode("utf8")
+    print("Hola")
     output += "\nPrioridad: " + str(prioridad)
     output += "\nAccuracy: " + str(accuracy)
     print(f"Thread {thread_id} finished") 
@@ -202,6 +210,8 @@ def pruebas(args):
             json.dump(content, file, indent=4)
     
 def main():
+
+    random.seed()
     
     parser = argument_parser()
     args = parser.parse_args()

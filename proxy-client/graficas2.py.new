@@ -9,17 +9,28 @@ import scipy.stats as st
 
 
 FROM = 0
-TO = 1000  # Sin incluir la ultima
+#TO = 45 # Sin incluir la ultima
+TO = 1000 # Sin incluir la ultima
 
+
+#traduccion_nodos = {
+    #"alpinevm1": "a:edge_cpu_1",
+    #"alpinevm2": "b:edge_cpu_2",
+    #"jorinnano": "c:edge_gpu_1",
+    #"artecslab003": "d:fog_cpu_1",
+    #"orin2": "e:fog_gpu_1",
+    #"ocejon": "f:cloud_gpu_1",
+    #"marbore": "g:cloud_gpu_2"
+#}
 
 traduccion_nodos = {
-    "alpinevm1": "a:edge_cpu_1",
-    "alpinevm2": "b:edge_cpu_2",
-    "jorinnano": "c:edge_gpu_1",
-    "artecslab003": "d:fog_cpu_1",
-    "orin2": "e:fog_gpu_1",
-    "ocejon": "f:cloud_gpu_1",
-    "marbore": "g:cloud_gpu_2"
+    "alpinevm1": "a:E1",
+    "alpinevm2": "b:E2",
+    "jorinnano": "c:E3",
+    "artecslab003": "d:F1",
+    "orin2": "e:F2",
+    "ocejon": "f:C1",
+    "marbore": "g:C2"
 }
 
 
@@ -53,6 +64,7 @@ def dibujar_graficas(nodes, times, models, time, nreq):
     fig, ax = plt.subplots(1,1) 
 
     # Dibujar grafica tiempo
+    print(nodes.keys())
     node_names = sorted(nodes.keys())
     for nodo in node_names:
         info = nodes[nodo]
@@ -103,21 +115,24 @@ def dibujar_graficas(nodes, times, models, time, nreq):
     fig.savefig("modelos.png", dpi=100)
 
     plt.clf()
-    fig, ax = plt.subplots(figsize=(12, 8))
+    #fig, ax = plt.subplots(figsize=(12, 8))
+    fig, ax = plt.subplots()
     x = np.arange(len(nodes))
     #X = list(nodes)
     node_names = sorted(nodes)
     Y = [len(nodes[node][0]) for node in node_names]
     plt.bar(x, Y, width=0.3)
     Y2 = [sum(nodes[node][1]) / len(nodes[node][1]) for node in node_names]
-    ax.set_ylabel("Amount of requests", color="tab:blue")
+    ax.set_ylabel("Number of requests", color="tab:blue")#, fontsize=16)
     ax2 = ax.twinx()
-    ax2.set_ylabel("Average response time (ms)", color="tab:red")
-    plt.bar(x + 0.3, Y2, width=0.3, color="tab:red")
-    plt.title("IPtables: random")
+    ax2.set_ylabel("Average response time (ms)", color="tab:orange") #, fontsize=16)
+    plt.bar(x + 0.3, Y2, width=0.3, color="tab:orange")
+    plt.title("Kubernetes/IPtables. Random scheduling") #, fontsize=16)
     ax.set_xticks(x + 0.3 / 2)
-    ax.set_xticklabels([node.split(":")[1] for node in node_names])
-    plt.savefig("barras_nodos.png")
+    ax.set_xticklabels([node.split(":")[1] for node in node_names]) #, fontsize=14)
+    plt.savefig("barras_nodos.png", dpi=100)
+    plt.savefig("barras_nodos.pdf", dpi=100)
+    plt.savefig("barras_nodos.eps", dpi=100)
 
 if __name__ == "__main__":
 
@@ -142,7 +157,7 @@ if __name__ == "__main__":
         models = dict()
         algoritmo = arg.split("/")[-1].replace(".json", "")
         for thread_id, res in enumerate(results):
-            
+
             if res.route is None:
                 #print(f"Thread: {thread_id} failed")
                 times.append(None)
@@ -164,51 +179,54 @@ if __name__ == "__main__":
 
 
         rango = range(0, nreq * time, time)
+        print("Hola")
         line = ax.plot(rango, times, zorder=1, linewidth=1, color="gray")
+        
         algoritmos[algoritmo] = times
 
 
     # Dibujar grafica tiempo
+    markers = [ 'v', 'v', 'v', '^', '^', 's', 's' ]
     ax.set_prop_cycle(None)
     node_names = sorted(nodes.keys())
+    i = 0
     for nodo in node_names:
         info = nodes[nodo]
-        ax.scatter(info[0], info[1], zorder=2, s=30)
+        ax.scatter(info[0], info[1], zorder=2, s=80, marker = markers[i] ) #, marker = 's')
+        i+=1
         
     cm = 1/2.54
 
-    plt.title("Tiempo de respuesta")
-    plt.xlabel("Tiempo (ms)")
-    plt.ylabel("Latencia (ms)")
+    plt.title("Response time (ms)")
+    plt.xlabel("Time (ms)")
+    plt.ylabel("Latency (ms)")
     
-    legend1 = plt.legend(list(algoritmos.keys()) + [node.split(":")[1] for node in node_names], loc="upper right", title="Nodos")
+    legend1 = plt.legend(list(algoritmos.keys()) + [node.split(":")[1] for node in node_names], loc="best", ncols=3)
+    #legend1 = plt.legend([node.split(":")[1] for node in node_names], loc="best")
     ax.add_artist(legend1)
     
     fig = plt.gcf()
     prev_width = fig.get_figwidth()
     prev_height = fig.get_figheight()
     fig_width = max(len(times) * 0.5, 14) * cm + 3
-    fig.set_size_inches(fig_width, 6)
+    #fig.set_size_inches(fig_width, 6)
+    #fig.set_size_inches(fig_width, fig_width)
     ax.xaxis.set_minor_locator(tkr.FixedLocator(list(range(0, time * nreq, time))))
     ax.xaxis.set_major_locator(tkr.MaxNLocator(10))
-    #plt.grid(axis="x", zorder=1, which="both")
+    plt.grid(axis="x", zorder=1, which="both")
     fig.savefig("tiempos.png", dpi=100)
+    fig.savefig("tiempos.eps", dpi=100)
+    fig.savefig("tiempos.pdf", dpi=100)
 
 
     fig.set_size_inches(prev_width, prev_height)
     
     
-    for algoritmo, tiempos in algoritmos.items():
-        print(f"{algoritmo}, {len([t for t in tiempos if t is None])}")
-
     plt.clf()
-    ax = plt.gca()
-    ax.set_ylim(0, 1000)
     plt.xlabel("Algoritmo")
     plt.ylabel("Tiempo respuesta promedio")
-    plt.bar(algoritmos.keys(), [sum([t for t in tiempo if t is not None]) / len([t for t in tiempo if t is not None]) for tiempo in algoritmos.values()])
-    plt.errorbar(algoritmos.keys(), [sum([t for t in tiempo if t is not None]) / len([t for t in tiempo if t is not None]) for tiempo in algoritmos.values()], [int_confianza([t for t in tiempo if t is not None], 0.99) for tiempo in algoritmos.values()], linestyle="None", color="black", capsize=5)
-    ax.set_xticks
+    plt.bar(algoritmos.keys(), [sum(tiempo) / len(tiempo) for tiempo in algoritmos.values()])
+    plt.errorbar(algoritmos.keys(), [sum(tiempo) / len(tiempo) for tiempo in algoritmos.values()], [int_confianza(tiempo, 0.99) for tiempo in algoritmos.values()], linestyle="None", color="black", capsize=5)
     plt.savefig("desviaciones.png")
        
     dibujar_graficas(nodes, times, models, time, nreq)

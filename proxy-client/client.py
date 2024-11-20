@@ -113,6 +113,15 @@ def argument_parser() -> ArgumentParser:
         help="Priority",
     )
 
+    parser.add_argument(
+        "-q",
+        "--quantization",
+        type=str,
+        required=False,
+        default=0,
+        help="Quantization (int8, tf32, etc...)",
+    )
+
     return parser
 
 def guardar_imagen_prediccion(predictions, nombre):
@@ -157,11 +166,12 @@ def main():
             sock.send(struct.pack(">I", 0))
             sock.send(struct.pack(">I", args.priority))
             sock.send(struct.pack(">I", args.accuracy))
-            sock.send(struct.pack(">I", 4))
-            if random() >= 0.5:
-                sock.sendall("tf32".encode("utf-8"))
+            if args.quantization:
+                sock.send(struct.pack(">I", len(args.quantization)))
+                sock.sendall(args.quantization.encode("utf-8"))
             else:
-                sock.sendall("int8".encode("utf-8"))
+                sock.send(struct.pack(">I", 4))
+
             sock.send(struct.pack(">Q", len(img)))
             sock.send(img)
             
